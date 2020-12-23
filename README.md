@@ -10,8 +10,10 @@
 
 - [PMW3389DM-T3QU](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwicx5OA9eTtAhWC-yoKHVfKAJ0QFjAAegQIBhAC&url=https%3A%2F%2Fwww.pixart.com%2F_getfs.php%3Ftb%3Dproduct%26id%3D4%26fs%3Dck2_fs_cn&usg=AOvVaw1A1rR533Pt-7EgnVSS-_ch), optical navigation chip
 
-- [Jack Enterprice Breakout Board](https://www.tindie.com/products/jkicklighter/pmw3389-motion-sensor/), an example design with software linked.
+- [Jack Enterprise Breakout Board](https://www.tindie.com/products/jkicklighter/pmw3389-motion-sensor/), an example design with software linked.
 
+- [Introduction to SPI](https://www.analog.com/en/analog-dialogue/articles/introduction-to-spi-interface.html#), a short introduction to the SPI interface.
+  
 ## Debug interface
 
 - Serial Wire debugging uses pins PA13 and PA14.

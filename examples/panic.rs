@@ -21,6 +21,7 @@
 use panic_itm as _;
 
 use cortex_m_rt::entry;
+use stm32f4 as _;
 
 #[entry]
 fn main() -> ! {

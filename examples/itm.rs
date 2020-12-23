@@ -21,6 +21,7 @@ use panic_halt as _;
 
 use cortex_m::{iprintln, Peripherals};
 use cortex_m_rt::entry;
+use stm32f4 as _; // to get interrupt vectors
 
 #[entry]
 fn main() -> ! {

@@ -7,7 +7,7 @@ use cortex_m::{
     iprintln,
     peripheral::{itm::Stim, DWT},
 };
-use embedded_hal::spi::MODE_0;
+use embedded_hal::spi::{MODE_0, MODE_1, MODE_2, MODE_3};
 // use cortex_m_semihosting::hprintln;
 use panic_halt as _;
 use rtic::cyccnt::{Instant, U32Ext as _};
@@ -83,8 +83,8 @@ const APP: () = {
             //     polarity: Polarity::IdleLow,
             //     phase: Phase::CaptureOnFirstTransition,
             // },
-            MODE_0,
-            stm32f4xx_hal::time::KiloHertz(2000).into(),
+            MODE_3,
+            stm32f4xx_hal::time::KiloHertz(100).into(),
             clocks,
         );
 
@@ -93,6 +93,32 @@ const APP: () = {
         let mut pmw3389 = pmw3389::Pmw3389::new(spi, cs).unwrap();
         let id = pmw3389.product_id().unwrap();
         iprintln!(stim, "id {}", id);
+
+        let id = pmw3389.product_id().unwrap();
+        iprintln!(stim, "id {}", id);
+
+        let id = pmw3389
+            .read_register(pmw3389::Register::RevisionId)
+            .unwrap();
+        iprintln!(stim, "rev {}", id);
+
+        let id = pmw3389
+            .read_register(pmw3389::Register::ShutterLower)
+            .unwrap();
+        iprintln!(stim, "lower {}", id);
+
+        let id = pmw3389
+            .read_register(pmw3389::Register::ShutterUpper)
+            .unwrap();
+        iprintln!(stim, "upper {}", id);
+
+        let id = pmw3389.read_register(pmw3389::Register::SROMId).unwrap();
+        iprintln!(stim, "sromid {}", id);
+
+        let id = pmw3389
+            .read_register(pmw3389::Register::InverseProductID)
+            .unwrap();
+        iprintln!(stim, "-id {}", id);
 
         // semantically, the monotonic timer is frozen at time "zero" during `init`
         // NOTE do *not* call `Instant::now` in this context; it will return a nonsense value
@@ -312,10 +338,10 @@ mod pmw3389 {
         //     self.change_config(Register::CTRL_REG4, scale)
         // }
 
-        fn read_register(&mut self, reg: Register) -> Result<u8, E> {
+        pub fn read_register(&mut self, reg: Register) -> Result<u8, E> {
             let _ = self.cs.set_low();
 
-            let mut buffer = [reg.addr() | SINGLE | READ, 0];
+            let mut buffer = [reg.addr() & 0x7f, 0];
             self.spi.transfer(&mut buffer)?;
 
             let _ = self.cs.set_high();

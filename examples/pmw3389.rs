@@ -3,21 +3,12 @@
 #![no_main]
 #![no_std]
 
-use cortex_m::{
-    iprintln,
-    peripheral::{itm::Stim, DWT},
-};
-use embedded_hal::spi::{MODE_0, MODE_1, MODE_2, MODE_3};
+use cortex_m::{iprintln, peripheral::DWT};
+use embedded_hal::spi::MODE_3;
 // use cortex_m_semihosting::hprintln;
 use panic_halt as _;
 use rtic::cyccnt::{Instant, U32Ext as _};
-use stm32f4xx_hal::{
-    // gpio::gpioa::PA0,
-    prelude::*,
-    // rcc::CFGR,
-    spi::Spi,
-    stm32,
-};
+use stm32f4xx_hal::{dwt::Dwt, prelude::*, rcc::Clocks, spi::Spi, stm32};
 
 //use crate::hal::gpio::{gpioa::PA0, Edge, Input, PullDown};
 //use hal::spi::{Mode, Phase, Polarity};
@@ -49,13 +40,8 @@ const APP: () = {
 
         iprintln!(stim, "pmw3389");
 
-        // iprintln!(stim, "hclk {:?}", clocks.hclk().into::());
-
         // Initialize (enable) the monotonic timer (CYCCNT)
         core.DCB.enable_trace();
-        // required on Cortex-M7 devices that software lock the DWT (e.g. STM32F7)
-        DWT::unlock();
-        core.DWT.enable_cycle_counter();
 
         // Configure SPI
         // spi2
@@ -79,21 +65,31 @@ const APP: () = {
         let spi = Spi::spi2(
             device.SPI2,
             (sck, miso, mosi),
-            // Mode {
-            //     polarity: Polarity::IdleLow,
-            //     phase: Phase::CaptureOnFirstTransition,
-            // },
             MODE_3,
-            stm32f4xx_hal::time::KiloHertz(100).into(),
+            stm32f4xx_hal::time::KiloHertz(2000).into(),
             clocks,
         );
 
         iprintln!(stim, "clocks:\n hclk {}", clocks.hclk().0);
 
-        let mut pmw3389 = pmw3389::Pmw3389::new(spi, cs).unwrap();
-        let id = pmw3389.product_id().unwrap();
-        iprintln!(stim, "id {}", id);
+        let mut delay = DwtDelay::new(&mut core.DWT, clocks);
 
+        // test the delay
+        let t1 = stm32::DWT::get_cycle_count();
+        delay.delay_us(1000);
+        let t2 = stm32::DWT::get_cycle_count();
+
+        iprintln!(stim, "t1 {}", t1);
+        iprintln!(stim, "t2 {}", t2);
+
+        // let t1 = stm32::DWT::get_cycle_count();
+        // delay.delay_ms(1000);
+        // let t2 = stm32::DWT::get_cycle_count();
+
+        // iprintln!(stim, "t1 {}", t1);
+        // iprintln!(stim, "t2 {}", t2);
+
+        let mut pmw3389 = pmw3389::Pmw3389::new(spi, cs).unwrap();
         let id = pmw3389.product_id().unwrap();
         iprintln!(stim, "id {}", id);
 
@@ -119,6 +115,18 @@ const APP: () = {
             .read_register(pmw3389::Register::InverseProductID)
             .unwrap();
         iprintln!(stim, "-id {}", id);
+
+        let id = pmw3389
+            .read_register(pmw3389::Register::RippleControl)
+            .unwrap();
+        iprintln!(stim, "ripple_control {:x}", id);
+
+        pmw3389.write_register(pmw3389::Register::RippleControl, 10);
+
+        let id = pmw3389
+            .read_register(pmw3389::Register::RippleControl)
+            .unwrap();
+        iprintln!(stim, "ripple_control {:x}", id);
 
         // semantically, the monotonic timer is frozen at time "zero" during `init`
         // NOTE do *not* call `Instant::now` in this context; it will return a nonsense value
@@ -156,11 +164,42 @@ const APP: () = {
     }
 };
 
+struct DwtDelay {
+    clocks: Clocks,
+}
+
+impl DwtDelay {
+    pub fn new(dwt: &mut stm32::DWT, clocks: Clocks) -> DwtDelay {
+        // required on Cortex-M7 devices that software lock the DWT (e.g. STM32F7)
+        stm32::DWT::unlock();
+        dwt.enable_cycle_counter();
+        Self { clocks }
+    }
+}
+
+impl _embedded_hal_blocking_delay_DelayUs<u32> for DwtDelay {
+    fn delay_us(&mut self, us: u32) {
+        let freq_m_hertz = self.clocks.hclk().0 / 1_000_000;
+
+        let start = stm32::DWT::get_cycle_count() as i32;
+        let end = start.wrapping_add((us * freq_m_hertz) as i32);
+
+        while (stm32::DWT::get_cycle_count() as i32).wrapping_sub(end) < 0 {
+            // this nop should be ok as the `DWT::get_cycle_count() provides side effects
+        }
+    }
+}
+
+impl _embedded_hal_blocking_delay_DelayMs<u32> for DwtDelay {
+    fn delay_ms(&mut self, ms: u32) {
+        self.delay_us(ms * 1000)
+    }
+}
 mod pmw3389 {
 
     use embedded_hal::blocking::spi::{Transfer, Write};
     use embedded_hal::digital::v2::OutputPin;
-    use embedded_hal::spi::Mode;
+    // use embedded_hal::spi::Mode;
 
     #[allow(dead_code)]
     #[derive(Clone, Copy)]
@@ -229,10 +268,10 @@ mod pmw3389 {
         }
     }
 
-    const READ: u8 = 1 << 7;
-    const WRITE: u8 = 0 << 7;
-    const MULTI: u8 = 1 << 6;
-    const SINGLE: u8 = 0 << 6;
+    // const READ: u8 = 1 << 7;
+    // const WRITE: u8 = 0 << 7;
+    // const MULTI: u8 = 1 << 6;
+    // const SINGLE: u8 = 0 << 6;
 
     pub struct Pmw3389<SPI, CS> {
         spi: SPI,
@@ -351,19 +390,19 @@ mod pmw3389 {
 
         /// Read multiple bytes starting from the `start_reg` register.
         /// This function will attempt to fill the provided buffer.
-        fn read_many(&mut self, start_reg: Register, buffer: &mut [u8]) -> Result<(), E> {
+        // fn read_many(&mut self, start_reg: Register, buffer: &mut [u8]) -> Result<(), E> {
+        //     let _ = self.cs.set_low();
+        //     buffer[0] = start_reg.addr() | MULTI | READ;
+        //     self.spi.transfer(buffer)?;
+        //     let _ = self.cs.set_high();
+
+        //     Ok(())
+        // }
+
+        pub fn write_register(&mut self, reg: Register, byte: u8) -> Result<(), E> {
             let _ = self.cs.set_low();
-            buffer[0] = start_reg.addr() | MULTI | READ;
-            self.spi.transfer(buffer)?;
-            let _ = self.cs.set_high();
 
-            Ok(())
-        }
-
-        fn write_register(&mut self, reg: Register, byte: u8) -> Result<(), E> {
-            let _ = self.cs.set_low();
-
-            let buffer = [reg.addr() | SINGLE | WRITE, byte];
+            let buffer = [reg.addr() | 0x80, byte];
             self.spi.write(&buffer)?;
 
             let _ = self.cs.set_high();

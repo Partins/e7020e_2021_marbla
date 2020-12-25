@@ -61,7 +61,8 @@ const APP: () = {
         let sck = gpiob.pb10.into_alternate_af5();
         let miso = gpioc.pc2.into_alternate_af5();
         let mosi = gpioc.pc3.into_alternate_af5();
-        let cs = gpiob.pb4.into_push_pull_output().set_speed(Speed::VeryHigh);
+        // let cs = gpiob.pb4.into_push_pull_output().set_speed(Speed::High);
+        let cs = gpiob.pb4.into_push_pull_output();
 
         let spi = Spi::spi2(
             device.SPI2,
@@ -80,8 +81,13 @@ const APP: () = {
         delay.delay_us(1000);
         let t2 = stm32::DWT::get_cycle_count();
 
-        iprintln!(stim, "t1 {}", t1);
-        iprintln!(stim, "t2 {}", t2);
+        iprintln!(stim, "1000us {}", t2.wrapping_sub(t1));
+
+        let t1 = stm32::DWT::get_cycle_count();
+        delay.delay_ms(1000);
+        let t2 = stm32::DWT::get_cycle_count();
+
+        iprintln!(stim, "1000ms {}", t2.wrapping_sub(t1));
 
         let mut pmw3389 = pmw3389::Pmw3389::new(spi, cs, delay, &mut core.ITM).unwrap();
 
@@ -260,11 +266,6 @@ mod pmw3389 {
         }
     }
 
-    // const READ: u8 = 1 << 7;
-    // const WRITE: u8 = 0 << 7;
-    // const MULTI: u8 = 1 << 6;
-    // const SINGLE: u8 = 0 << 6;
-
     pub struct Pmw3389<SPI, CS> {
         spi: SPI,
         cs: CS,
@@ -281,23 +282,14 @@ mod pmw3389 {
         }
 
         fn com_end(&mut self) {
-            self.cs.set_low().ok();
+            self.cs.set_high().ok();
         }
 
         /// Creates a new driver from a SPI peripheral and a NCS pin
         pub fn new(spi: SPI, cs: CS, delay: DwtDelay, itm: &mut stm32::ITM) -> Result<Self, E> {
             let mut pmw3389 = Pmw3389 { spi, cs, delay };
 
-            // ensure SPI is reset
-            pmw3389.com_end();
-            pmw3389.com_begin();
-            pmw3389.com_end();
-
-            // force reset
-            pmw3389.write_register(Register::PowerUpReset, 0x5a)?;
-
-            // wait for reboot
-            pmw3389.delay.delay_ms(50);
+            iprintln!(&mut itm.stim[0], "pmw3389 - new");
 
             // read product id
             let id = pmw3389.product_id()?;
@@ -305,6 +297,43 @@ mod pmw3389 {
 
             let srom_id = pmw3389.read_register(Register::SROMId)?;
             iprintln!(&mut itm.stim[0], "srom_id {}, 0x{:x}", srom_id, srom_id);
+
+            iprintln!(&mut itm.stim[0], "reset");
+
+            // ensure SPI is reset
+            pmw3389.com_end();
+            pmw3389.com_begin();
+            pmw3389.com_end();
+
+            // shutdown
+
+            // adns_write_reg(Shutdown, 0xb6); // Shutdown first
+            // delay(300);
+
+            // adns_com_begin(); // drop and raise ncs to reset spi port
+            // delayMicroseconds(40);
+            // adns_com_end();
+            // delayMicroseconds(40);
+
+            pmw3389.write_register(Register::Shutdown, 0xb6)?;
+            pmw3389.delay.delay_ms(300);
+            pmw3389.com_begin();
+            pmw3389.delay.delay_us(40);
+            pmw3389.com_end();
+            pmw3389.delay.delay_us(40);
+
+            // force reset
+            pmw3389.write_register(Register::PowerUpReset, 0x5a)?;
+
+            // wait for reboot
+            pmw3389.delay.delay_ms(50);
+
+            // // read product id
+            // let id = pmw3389.product_id()?;
+            // iprintln!(&mut itm.stim[0], "product_id 0x{:x}", id);
+
+            // let srom_id = pmw3389.read_register(Register::SROMId)?;
+            // iprintln!(&mut itm.stim[0], "srom_id {}, 0x{:x}", srom_id, srom_id);
 
             // read registers 0x02 to 0x06 (and discard the data)
             pmw3389.read_register(Register::Motion)?;
@@ -341,11 +370,14 @@ mod pmw3389 {
         pub fn read_register(&mut self, reg: Register) -> Result<u8, E> {
             self.com_begin();
 
-            let mut buffer = [reg.addr() & 0x7f, 0];
+            let mut buffer = [reg.addr() & 0x7f];
             self.spi.transfer(&mut buffer)?;
 
-            // delayMicroseconds(100); // tSRAD
+            // tSRAD
             self.delay.delay_us(100);
+
+            let mut buffer = [0];
+            self.spi.transfer(&mut buffer)?;
 
             // tSCLK-NCS for read operation is 120ns
             self.delay.delay_us(1);
@@ -355,14 +387,18 @@ mod pmw3389 {
             // tSRW/tSRR (=20us) minus tSCLK-NCS
             self.delay.delay_us(19);
 
-            Ok(buffer[1])
+            Ok(buffer[0])
         }
 
         pub fn write_register(&mut self, reg: Register, byte: u8) -> Result<(), E> {
             self.com_begin();
 
-            let buffer = [reg.addr() | 0x80, byte];
-            self.spi.write(&buffer)?;
+            let mut buffer = [reg.addr() | 0x80];
+            self.spi.transfer(&mut buffer)?;
+
+            // send
+            let mut buffer = [byte];
+            self.spi.transfer(&mut buffer)?;
 
             // tSCLK-NCS for write operation
             self.delay.delay_us(20);
@@ -370,6 +406,7 @@ mod pmw3389 {
             self.com_end();
             // tSWW/tSWR (=120us) minus tSCLK-NCS.
             // Could be shortened, but is looks like a safe lower bound
+
             self.delay.delay_us(100);
 
             Ok(())
@@ -389,6 +426,7 @@ mod pmw3389 {
 
             //Write 0 to Rest_En bit of Config2 register to disable Rest mode.
             // adns_write_reg(Config2, 0x20);
+            // is this correct?
             self.write_register(Register::Config2, 0x20)?;
 
             // write 0x1d in SROM_enable reg for initializing
@@ -405,12 +443,14 @@ mod pmw3389 {
             // adns_write_reg(SROM_Enable, 0x18);
             self.write_register(Register::SROMEnable, 0x18)?;
 
+            iprintln!(stim, "Begin transfer...");
+
             // write the SROM file (=firmware data)
             // adns_com_begin();
             self.com_begin();
 
             // write burst destination address
-            // SPI.transfer(SROM_Load_Burst | 0x80); // write burst destination adress
+            // SPI.transfer(SROM_Load_Burst | 0x80); // write burst destination address
             // delayMicroseconds(15);
 
             self.spi
@@ -426,17 +466,18 @@ mod pmw3389 {
             //   delayMicroseconds(15);
             // }
 
-            iprintln!(stim, "Begin transfer...");
-
             for i in FIRMWARE.iter() {
-                self.spi.transfer(&mut [*i])?;
-                self.delay.delay_us(15);
+                let mut buff = [*i];
+                // iprintln!(stim, "0x{:x}", buff[0]);
+                self.spi.transfer(&mut buff)?;
+                self.delay.delay_us(15); // 15
             }
 
-            // Per: added this, seems adequate
+            // // Per: added this, seems adequate
             // self.delay.delay_us(105);
 
-            // let _ = self.cs.set_high();
+            // // let _ = self.cs.set_high();
+            // self.com_end();
 
             //Read the SROM_ID register to verify the ID before any other register reads or writes.
             // adns_read_reg(SROM_ID);
@@ -446,14 +487,15 @@ mod pmw3389 {
 
             // //Write 0x00 to Config2 register for wired mouse or 0x20 for wireless mouse design.
             // // adns_write_reg(Config2, 0x00);
-            // self.write_register(Register::Config2, 0x00)?;
+            self.write_register(Register::Config2, 0x00)?;
 
             // // set initial CPI resolution
             // // adns_write_reg(Config1, 0x15);
-            // // not sure this is the RippleControl
-            // self.write_register(Register::RippleControl, 0x15)?;
+
+            self.write_register(Register::ResolutionH, 0x15)?;
 
             // adns_com_end();
+            self.com_end();
             Ok(())
         }
 

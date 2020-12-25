@@ -120,12 +120,14 @@ const APP: () = {
             .unwrap();
         iprintln!(stim, "ripple_control {:x}", id);
 
-        pmw3389.write_register(pmw3389::Register::RippleControl, 10);
+        // pmw3389
+        //     .write_register(pmw3389::Register::RippleControl, 10)
+        //     .unwrap();
 
-        let id = pmw3389
-            .read_register(pmw3389::Register::RippleControl)
-            .unwrap();
-        iprintln!(stim, "ripple_control {:x}", id);
+        // let id = pmw3389
+        //     .read_register(pmw3389::Register::RippleControl)
+        //     .unwrap();
+        // iprintln!(stim, "ripple_control {:x}", id);
 
         // semantically, the monotonic timer is frozen at time "zero" during `init`
         // NOTE do *not* call `Instant::now` in this context; it will return a nonsense value
@@ -286,12 +288,62 @@ mod pmw3389 {
         SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
         CS: OutputPin,
     {
+        fn com_start(&mut self) {
+            self.cs.set_low();
+        }
+
+        fn com_end(&mut self) {
+            self.cs.set_low();
+        }
+
         /// Creates a new driver from a SPI peripheral and a NCS pin
-        pub fn new(spi: SPI, cs: CS, delay: DwtDelay) -> Result<Self, E> {
+        pub fn new(
+            spi: SPI,
+            cs: CS,
+            delay: DwtDelay,
+            mut itm: stm32f4::stm32f411::ITM,
+        ) -> Result<Self, E> {
             let mut pmw3389 = Pmw3389 { spi, cs, delay };
 
-            // power up code here?
-            // download firmware etc.
+            // ensure SPI is reset
+            pmw3389.com_end();
+            pmw3389.com_start();
+            pmw3389.com_end();
+
+            // force reset
+            pmw3389.write_register(Register::PowerUpReset, 0x5a);
+
+            // wait for reboot
+            pmw3389.delay.delay_ms(50);
+
+            // read registers 0x02 to 0x06 (and discard the data)
+            pmw3389.read_register(Register::Motion)?;
+            pmw3389.read_register(Register::DeltaXL)?;
+            pmw3389.read_register(Register::DeltaXH)?;
+            pmw3389.read_register(Register::DeltaYL)?;
+            pmw3389.read_register(Register::DeltaYH)?;
+
+            pmw3389.upload_firmware(itm)?;
+            pmw3389.delay.delay_ms(10);
+
+            iprintln!(&mut itm.stim[0], "Optical Chip Initialized");
+
+            // adns_com_end(); // ensure that the serial port is reset
+            // adns_com_begin(); // ensure that the serial port is reset
+            // adns_com_end(); // ensure that the serial port is reset
+            // adns_write_reg(Power_Up_Reset, 0x5a); // force reset
+            // delay(50); // wait for it to reboot
+            // // read registers 0x02 to 0x06 (and discard the data)
+            // adns_read_reg(Motion);
+            // adns_read_reg(Delta_X_L);
+            // adns_read_reg(Delta_X_H);
+            // adns_read_reg(Delta_Y_L);
+            // adns_read_reg(Delta_Y_H);
+            // // upload the firmware
+            // adns_upload_firmware();
+            // delay(10);
+            // Serial.println("Optical Chip Initialized");
+            // }
 
             Ok(pmw3389)
         }

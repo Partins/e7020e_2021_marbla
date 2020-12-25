@@ -88,7 +88,9 @@ const APP: () = {
         // iprintln!(stim, "t1 {}", t1);
         // iprintln!(stim, "t2 {}", t2);
 
-        let mut pmw3389 = pmw3389::Pmw3389::new(spi, cs, delay).unwrap();
+        let mut pmw3389 = pmw3389::Pmw3389::new(spi, cs, delay, &mut core.ITM).unwrap();
+
+        let stim = &mut core.ITM.stim[0];
         let id = pmw3389.product_id().unwrap();
         iprintln!(stim, "id {}", id);
 
@@ -301,7 +303,7 @@ mod pmw3389 {
             spi: SPI,
             cs: CS,
             delay: DwtDelay,
-            mut itm: stm32f4::stm32f411::ITM,
+            itm: &mut stm32f4::stm32f411::ITM,
         ) -> Result<Self, E> {
             let mut pmw3389 = Pmw3389 { spi, cs, delay };
 
@@ -389,7 +391,7 @@ mod pmw3389 {
         }
 
         ///
-        pub fn upload_firmware(&mut self, mut itm: stm32f4::stm32f411::ITM) -> Result<(), E> {
+        pub fn upload_firmware(&mut self, itm: &mut stm32f4::stm32f411::ITM) -> Result<(), E> {
             let stim = &mut itm.stim[0];
             // send the firmware to the chip, cf p.18 of the datasheet
             // Serial.println("Uploading firmware...");

@@ -8,7 +8,7 @@ use embedded_hal::spi::MODE_3;
 // use cortex_m_semihosting::hprintln;
 use panic_halt as _;
 use rtic::cyccnt::{Instant, U32Ext as _};
-use stm32f4xx_hal::{dwt::Dwt, prelude::*, rcc::Clocks, spi::Spi, stm32};
+use stm32f4xx_hal::{dwt::Dwt, gpio::Speed, prelude::*, rcc::Clocks, spi::Spi, stm32};
 
 //use crate::hal::gpio::{gpioa::PA0, Edge, Input, PullDown};
 //use hal::spi::{Mode, Phase, Polarity};
@@ -38,6 +38,7 @@ const APP: () = {
 
         let stim = &mut core.ITM.stim[0];
 
+        iprintln!(stim, "------------");
         iprintln!(stim, "pmw3389");
 
         // Initialize (enable) the monotonic timer (CYCCNT)
@@ -60,7 +61,7 @@ const APP: () = {
         let sck = gpiob.pb10.into_alternate_af5();
         let miso = gpioc.pc2.into_alternate_af5();
         let mosi = gpioc.pc3.into_alternate_af5();
-        let cs = gpiob.pb4.into_push_pull_output();
+        let cs = gpiob.pb4.into_push_pull_output().set_speed(Speed::VeryHigh);
 
         let spi = Spi::spi2(
             device.SPI2,
@@ -71,7 +72,8 @@ const APP: () = {
         );
 
         let mut delay = DwtDelay::new(&mut core.DWT, clocks);
-        iprintln!(stim, "clocks:\n hclk {}", clocks.hclk().0);
+        iprintln!(stim, "clocks:");
+        iprintln!(stim, "hclk {}", clocks.hclk().0);
 
         // test the delay
         let t1 = stm32::DWT::get_cycle_count();
@@ -80,13 +82,6 @@ const APP: () = {
 
         iprintln!(stim, "t1 {}", t1);
         iprintln!(stim, "t2 {}", t2);
-
-        // let t1 = stm32::DWT::get_cycle_count();
-        // delay.delay_ms(1000);
-        // let t2 = stm32::DWT::get_cycle_count();
-
-        // iprintln!(stim, "t1 {}", t1);
-        // iprintln!(stim, "t2 {}", t2);
 
         let mut pmw3389 = pmw3389::Pmw3389::new(spi, cs, delay, &mut core.ITM).unwrap();
 
@@ -121,15 +116,6 @@ const APP: () = {
             .read_register(pmw3389::Register::RippleControl)
             .unwrap();
         iprintln!(stim, "ripple_control {:x}", id);
-
-        // pmw3389
-        //     .write_register(pmw3389::Register::RippleControl, 10)
-        //     .unwrap();
-
-        // let id = pmw3389
-        //     .read_register(pmw3389::Register::RippleControl)
-        //     .unwrap();
-        // iprintln!(stim, "ripple_control {:x}", id);
 
         // semantically, the monotonic timer is frozen at time "zero" during `init`
         // NOTE do *not* call `Instant::now` in this context; it will return a nonsense value
@@ -201,11 +187,11 @@ impl _embedded_hal_blocking_delay_DelayMs<u32> for DwtDelay {
 mod pmw3389 {
     use super::DwtDelay;
 
+    use cortex_m::iprintln;
     use embedded_hal::blocking::spi::{Transfer, Write};
     use embedded_hal::digital::v2::OutputPin;
-    // use embedded_hal::spi::Mode;
-    use cortex_m::iprintln;
-    use stm32f4xx_hal::prelude::*;
+    use stm32f4xx_hal::{prelude::*, stm32};
+    // use stm32f4xx_hal::{dwt::Dwt, gpio::Speed, prelude::*, rcc::Clocks, spi::Spi, stm32};
 
     #[allow(dead_code)]
     #[derive(Clone, Copy)]
@@ -290,33 +276,35 @@ mod pmw3389 {
         SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
         CS: OutputPin,
     {
-        fn com_start(&mut self) {
-            self.cs.set_low();
+        fn com_begin(&mut self) {
+            self.cs.set_low().ok();
         }
 
         fn com_end(&mut self) {
-            self.cs.set_low();
+            self.cs.set_low().ok();
         }
 
         /// Creates a new driver from a SPI peripheral and a NCS pin
-        pub fn new(
-            spi: SPI,
-            cs: CS,
-            delay: DwtDelay,
-            itm: &mut stm32f4::stm32f411::ITM,
-        ) -> Result<Self, E> {
+        pub fn new(spi: SPI, cs: CS, delay: DwtDelay, itm: &mut stm32::ITM) -> Result<Self, E> {
             let mut pmw3389 = Pmw3389 { spi, cs, delay };
 
             // ensure SPI is reset
             pmw3389.com_end();
-            pmw3389.com_start();
+            pmw3389.com_begin();
             pmw3389.com_end();
 
             // force reset
-            pmw3389.write_register(Register::PowerUpReset, 0x5a);
+            pmw3389.write_register(Register::PowerUpReset, 0x5a)?;
 
             // wait for reboot
             pmw3389.delay.delay_ms(50);
+
+            // read product id
+            let id = pmw3389.product_id()?;
+            iprintln!(&mut itm.stim[0], "product_id 0x{:x}", id);
+
+            let srom_id = pmw3389.read_register(Register::SROMId)?;
+            iprintln!(&mut itm.stim[0], "srom_id {}, 0x{:x}", srom_id, srom_id);
 
             // read registers 0x02 to 0x06 (and discard the data)
             pmw3389.read_register(Register::Motion)?;
@@ -351,15 +339,18 @@ mod pmw3389 {
         }
 
         pub fn read_register(&mut self, reg: Register) -> Result<u8, E> {
-            let _ = self.cs.set_low();
+            self.com_begin();
 
             let mut buffer = [reg.addr() & 0x7f, 0];
             self.spi.transfer(&mut buffer)?;
 
+            // delayMicroseconds(100); // tSRAD
+            self.delay.delay_us(100);
+
             // tSCLK-NCS for read operation is 120ns
             self.delay.delay_us(1);
 
-            let _ = self.cs.set_high();
+            self.com_end();
 
             // tSRW/tSRR (=20us) minus tSCLK-NCS
             self.delay.delay_us(19);
@@ -368,7 +359,7 @@ mod pmw3389 {
         }
 
         pub fn write_register(&mut self, reg: Register, byte: u8) -> Result<(), E> {
-            let _ = self.cs.set_low();
+            self.com_begin();
 
             let buffer = [reg.addr() | 0x80, byte];
             self.spi.write(&buffer)?;
@@ -376,8 +367,7 @@ mod pmw3389 {
             // tSCLK-NCS for write operation
             self.delay.delay_us(20);
 
-            let _ = self.cs.set_high();
-
+            self.com_end();
             // tSWW/tSWR (=120us) minus tSCLK-NCS.
             // Could be shortened, but is looks like a safe lower bound
             self.delay.delay_us(100);
@@ -390,8 +380,8 @@ mod pmw3389 {
             self.read_register(Register::ProductId)
         }
 
-        ///
-        pub fn upload_firmware(&mut self, itm: &mut stm32f4::stm32f411::ITM) -> Result<(), E> {
+        // Upload the firmware
+        pub fn upload_firmware(&mut self, itm: &mut stm32::ITM) -> Result<(), E> {
             let stim = &mut itm.stim[0];
             // send the firmware to the chip, cf p.18 of the datasheet
             // Serial.println("Uploading firmware...");
@@ -417,12 +407,14 @@ mod pmw3389 {
 
             // write the SROM file (=firmware data)
             // adns_com_begin();
-            let _ = self.cs.set_low();
+            self.com_begin();
 
             // write burst destination address
+            // SPI.transfer(SROM_Load_Burst | 0x80); // write burst destination adress
+            // delayMicroseconds(15);
+
             self.spi
                 .transfer(&mut [Register::SROMLoadBurst.addr() | 0x80])?;
-            // delayMicroseconds(15);
 
             self.delay.delay_us(15);
 
@@ -442,9 +434,9 @@ mod pmw3389 {
             }
 
             // Per: added this, seems adequate
-            self.delay.delay_us(105);
+            // self.delay.delay_us(105);
 
-            let _ = self.cs.set_high();
+            // let _ = self.cs.set_high();
 
             //Read the SROM_ID register to verify the ID before any other register reads or writes.
             // adns_read_reg(SROM_ID);
@@ -452,14 +444,14 @@ mod pmw3389 {
             let srom_id = self.read_register(Register::SROMId)?;
             iprintln!(stim, "srom_id {}, 0x{:x}", srom_id, srom_id);
 
-            //Write 0x00 to Config2 register for wired mouse or 0x20 for wireless mouse design.
-            // adns_write_reg(Config2, 0x00);
-            self.write_register(Register::Config2, 0x00)?;
+            // //Write 0x00 to Config2 register for wired mouse or 0x20 for wireless mouse design.
+            // // adns_write_reg(Config2, 0x00);
+            // self.write_register(Register::Config2, 0x00)?;
 
-            // set initial CPI resolution
-            // adns_write_reg(Config1, 0x15);
-            // not sure this is the RippleControl
-            self.write_register(Register::RippleControl, 0x15)?;
+            // // set initial CPI resolution
+            // // adns_write_reg(Config1, 0x15);
+            // // not sure this is the RippleControl
+            // self.write_register(Register::RippleControl, 0x15)?;
 
             // adns_com_end();
             Ok(())

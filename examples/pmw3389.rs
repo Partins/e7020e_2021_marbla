@@ -193,7 +193,7 @@ impl _embedded_hal_blocking_delay_DelayMs<u32> for DwtDelay {
 mod pmw3389 {
     use super::DwtDelay;
 
-    use cortex_m::iprintln;
+    use cortex_m::{iprint, iprintln};
     use embedded_hal::blocking::spi::{Transfer, Write};
     use embedded_hal::digital::v2::OutputPin;
     use stm32f4xx_hal::{prelude::*, stm32};
@@ -216,7 +216,7 @@ mod pmw3389 {
         ShutterLower = 0x0B,
         ShutterUpper = 0x0C,
         RippleControl = 0x0D,
-        ResoultionL = 0x0E,
+        ResolutionL = 0x0E,
         ResolutionH = 0x0F,
         Config2 = 0x10,
         AngleTune = 0x11,
@@ -328,12 +328,12 @@ mod pmw3389 {
             // wait for reboot
             pmw3389.delay.delay_ms(50);
 
-            // // read product id
-            // let id = pmw3389.product_id()?;
-            // iprintln!(&mut itm.stim[0], "product_id 0x{:x}", id);
+            // read product id
+            let id = pmw3389.product_id()?;
+            iprintln!(&mut itm.stim[0], "product_id 0x{:x}", id);
 
-            // let srom_id = pmw3389.read_register(Register::SROMId)?;
-            // iprintln!(&mut itm.stim[0], "srom_id {}, 0x{:x}", srom_id, srom_id);
+            let srom_id = pmw3389.read_register(Register::SROMId)?;
+            iprintln!(&mut itm.stim[0], "srom_id {}, 0x{:x}", srom_id, srom_id);
 
             // read registers 0x02 to 0x06 (and discard the data)
             pmw3389.read_register(Register::Motion)?;
@@ -347,22 +347,19 @@ mod pmw3389 {
 
             iprintln!(&mut itm.stim[0], "Optical Chip Initialized");
 
-            // adns_com_end(); // ensure that the serial port is reset
-            // adns_com_begin(); // ensure that the serial port is reset
-            // adns_com_end(); // ensure that the serial port is reset
-            // adns_write_reg(Power_Up_Reset, 0x5a); // force reset
-            // delay(50); // wait for it to reboot
-            // // read registers 0x02 to 0x06 (and discard the data)
-            // adns_read_reg(Motion);
-            // adns_read_reg(Delta_X_L);
-            // adns_read_reg(Delta_X_H);
-            // adns_read_reg(Delta_Y_L);
-            // adns_read_reg(Delta_Y_H);
-            // // upload the firmware
-            // adns_upload_firmware();
-            // delay(10);
-            // Serial.println("Optical Chip Initialized");
-            // }
+            // read product id
+            let id = pmw3389.product_id()?;
+            iprintln!(&mut itm.stim[0], "product_id 0x{:x}", id);
+
+            let srom_id = pmw3389.read_register(Register::SROMId)?;
+            iprintln!(&mut itm.stim[0], "srom_id {}, 0x{:x}", srom_id, srom_id);
+
+            pmw3389.delay.delay_ms(1000);
+
+            loop {
+                pmw3389.read_status(itm)?;
+                pmw3389.delay.delay_ms(1000);
+            }
 
             Ok(pmw3389)
         }
@@ -417,6 +414,69 @@ mod pmw3389 {
             self.read_register(Register::ProductId)
         }
 
+        /// Read status
+        pub fn read_status(&mut self, itm: &mut stm32::ITM) -> Result<(), E> {
+            self.com_begin();
+
+            self.spi.transfer(&mut [Register::MotionBurst.addr()])?;
+            self.delay.delay_ms(35); // waits for tSRAD
+
+            // read burst buffer
+            let mut buf = [0u8; 12];
+            self.spi.transfer(&mut buf)?;
+
+            // tSCLK-NCS for read operation is 120ns
+            self.delay.delay_us(120);
+
+            self.com_end();
+
+            iprint!(&mut itm.stim[0], "burst [");
+            for j in buf.iter() {
+                iprint!(&mut itm.stim[0], "0x{:02x}, ", j);
+            }
+            iprintln!(&mut itm.stim[0], "]");
+
+            //     SPI.endTransaction(); // Per:Not sure what it does
+            //     /*
+            //     BYTE[00] = Motion    = if the 7th bit is 1, a motion is detected.
+            //            ==> 7 bit: MOT (1 when motion is detected)
+            //            ==> 3 bit: 0 when chip is on surface / 1 when off surface
+            //            ] = Observation
+            //     BYTE[02] = Delta_X_L = dx (LSB)
+            //     BYTE[03] = Delta_X_H = dx (MSB)
+            //     BYTE[04] = Delta_Y_L = dy (LSB)
+            //     BYTE[05] = Delta_Y_H = dy (MSB)
+            //     BYTE[06] = SQUAL     = Surface Quality register, max 0x80
+            //                          - Number of features on the surface = SQUAL * 8
+            //     BYTE[07] = Raw_Data_Sum   = It reports the upper byte of an 18‐bit counter which sums all 1296 raw data in the current frame;
+            //                                * Avg value = Raw_Data_Sum * 1024 / 1296
+            //     BYTE[08] = Maximum_Raw_Data  = Max raw data value in current frame, max=127
+            //     BYTE[09] = Minimum_Raw_Data  = Min raw data value in current frame, max=127
+            //     BYTE[10] = Shutter_Upper     = Shutter LSB
+            //     BYTE[11] = Shutter_Lower     = Shutter MSB, Shutter = shutter is adjusted to keep the average raw data values within normal operating ranges
+            //     */
+            //     int motion = (burstBuffer[0] & 0x80) > 0;
+            let motion = buf[0] & 0x80;
+            let surface = buf[0] & 0x08;
+            // 0 if on surface / 1 if off surface
+
+            let x = buf[2] as u16 + (buf[3] as u16) << 8;
+            let y = buf[4] as u16 + (buf[5] as u16) << 8;
+
+            let squal = buf[6];
+
+            iprintln!(
+                &mut itm.stim[0],
+                "motion {}, surface {}, (x, y) {:?}, squal {}",
+                motion,
+                surface,
+                (x, y),
+                squal
+            );
+
+            Ok(())
+        }
+
         // Upload the firmware
         pub fn upload_firmware(&mut self, itm: &mut stm32::ITM) -> Result<(), E> {
             let stim = &mut itm.stim[0];
@@ -427,7 +487,7 @@ mod pmw3389 {
             //Write 0 to Rest_En bit of Config2 register to disable Rest mode.
             // adns_write_reg(Config2, 0x20);
             // is this correct?
-            self.write_register(Register::Config2, 0x20)?;
+            self.write_register(Register::Config2, 0x00)?;
 
             // write 0x1d in SROM_enable reg for initializing
             // adns_write_reg(SROM_Enable, 0x1d);
@@ -492,6 +552,7 @@ mod pmw3389 {
             // // set initial CPI resolution
             // // adns_write_reg(Config1, 0x15);
 
+            self.write_register(Register::ResolutionL, 0)?;
             self.write_register(Register::ResolutionH, 0x15)?;
 
             // adns_com_end();

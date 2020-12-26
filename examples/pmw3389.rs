@@ -61,14 +61,14 @@ const APP: () = {
         let sck = gpiob.pb10.into_alternate_af5();
         let miso = gpioc.pc2.into_alternate_af5();
         let mosi = gpioc.pc3.into_alternate_af5();
-        // let cs = gpiob.pb4.into_push_pull_output().set_speed(Speed::High);
-        let cs = gpiob.pb4.into_push_pull_output();
+        let cs = gpiob.pb4.into_push_pull_output().set_speed(Speed::High);
+        // let cs = gpiob.pb4.into_push_pull_output();
 
         let spi = Spi::spi2(
             device.SPI2,
             (sck, miso, mosi),
             MODE_3,
-            stm32f4xx_hal::time::KiloHertz(2000).into(),
+            stm32f4xx_hal::time::KiloHertz(1000).into(),
             clocks,
         );
 
@@ -291,6 +291,13 @@ mod pmw3389 {
 
             iprintln!(&mut itm.stim[0], "pmw3389 - new");
 
+            // ensure SPI is reset
+            pmw3389.com_end();
+            pmw3389.delay.delay_us(40);
+            pmw3389.com_begin();
+            pmw3389.delay.delay_us(40);
+            pmw3389.com_end();
+
             // read product id
             let id = pmw3389.product_id()?;
             iprintln!(&mut itm.stim[0], "product_id 0x{:x}", id);
@@ -299,11 +306,6 @@ mod pmw3389 {
             iprintln!(&mut itm.stim[0], "srom_id {}, 0x{:x}", srom_id, srom_id);
 
             iprintln!(&mut itm.stim[0], "reset");
-
-            // ensure SPI is reset
-            pmw3389.com_end();
-            pmw3389.com_begin();
-            pmw3389.com_end();
 
             // shutdown
 
@@ -315,12 +317,12 @@ mod pmw3389 {
             // adns_com_end();
             // delayMicroseconds(40);
 
-            pmw3389.write_register(Register::Shutdown, 0xb6)?;
-            pmw3389.delay.delay_ms(300);
-            pmw3389.com_begin();
-            pmw3389.delay.delay_us(40);
-            pmw3389.com_end();
-            pmw3389.delay.delay_us(40);
+            // pmw3389.write_register(Register::Shutdown, 0xb6)?;
+            // pmw3389.delay.delay_ms(300);
+            // pmw3389.com_begin();
+            // pmw3389.delay.delay_us(40);
+            // pmw3389.com_end();
+            // pmw3389.delay.delay_us(40);
 
             // force reset
             pmw3389.write_register(Register::PowerUpReset, 0x5a)?;
@@ -343,7 +345,8 @@ mod pmw3389 {
             pmw3389.read_register(Register::DeltaYH)?;
 
             pmw3389.upload_firmware(itm)?;
-            pmw3389.delay.delay_ms(10);
+
+            pmw3389.delay.delay_ms(1000);
 
             iprintln!(&mut itm.stim[0], "Optical Chip Initialized");
 
@@ -354,14 +357,40 @@ mod pmw3389 {
             let srom_id = pmw3389.read_register(Register::SROMId)?;
             iprintln!(&mut itm.stim[0], "srom_id {}, 0x{:x}", srom_id, srom_id);
 
-            pmw3389.delay.delay_ms(1000);
-
             loop {
-                pmw3389.read_status(itm)?;
-                pmw3389.delay.delay_ms(1000);
+                pmw3389.write_register(Register::Motion, 0x01)?;
+
+                let motion = pmw3389.read_register(Register::Motion)?;
+                let xl = pmw3389.read_register(Register::DeltaXL)?;
+                let xh = pmw3389.read_register(Register::DeltaXH)?;
+                let yl = pmw3389.read_register(Register::DeltaYL)?;
+                let yh = pmw3389.read_register(Register::DeltaYH)?;
+
+                let x = (xl as u16 + (xh as u16) << 8) as i16;
+                let y = (yl as u16 + (yh as u16) << 8) as i16;
+
+                let surface = motion & 0x08;
+                let motion_detect = motion & 0x80;
+
+                iprintln!(
+                    &mut itm.stim[0],
+                    "motion {}, surface {}, (x, y) {:?}",
+                    motion_detect,
+                    surface,
+                    (x, y),
+                );
+                pmw3389.delay.delay_ms(200);
             }
 
-            Ok(pmw3389)
+            // self.spi.transfer(&mut [Register::MotionBurst.addr()])?;
+            // self.delay.delay_ms(35); // waits for tSRAD
+
+            // loop {
+            //     pmw3389.read_status(itm)?;
+            //     pmw3389.delay.delay_ms(10);
+            // }
+
+            // Ok(pmw3389)
         }
 
         pub fn read_register(&mut self, reg: Register) -> Result<u8, E> {
@@ -372,6 +401,7 @@ mod pmw3389 {
 
             // tSRAD
             self.delay.delay_us(100);
+            self.delay.delay_us(120);
 
             let mut buffer = [0];
             self.spi.transfer(&mut buffer)?;
@@ -383,6 +413,7 @@ mod pmw3389 {
 
             // tSRW/tSRR (=20us) minus tSCLK-NCS
             self.delay.delay_us(19);
+            self.delay.delay_us(120);
 
             Ok(buffer[0])
         }
@@ -419,7 +450,7 @@ mod pmw3389 {
             self.com_begin();
 
             self.spi.transfer(&mut [Register::MotionBurst.addr()])?;
-            self.delay.delay_ms(35); // waits for tSRAD
+            self.delay.delay_us(35); // waits for tSRAD
 
             // read burst buffer
             let mut buf = [0u8; 12];
@@ -534,10 +565,9 @@ mod pmw3389 {
             }
 
             // // Per: added this, seems adequate
-            // self.delay.delay_us(105);
+            self.delay.delay_us(105);
 
-            // // let _ = self.cs.set_high();
-            // self.com_end();
+            self.com_end();
 
             //Read the SROM_ID register to verify the ID before any other register reads or writes.
             // adns_read_reg(SROM_ID);
@@ -547,50 +577,20 @@ mod pmw3389 {
 
             // //Write 0x00 to Config2 register for wired mouse or 0x20 for wireless mouse design.
             // // adns_write_reg(Config2, 0x00);
-            self.write_register(Register::Config2, 0x00)?;
+            self.write_register(Register::Config2, 0x20)?;
 
             // // set initial CPI resolution
             // // adns_write_reg(Config1, 0x15);
 
-            self.write_register(Register::ResolutionL, 0)?;
-            self.write_register(Register::ResolutionH, 0x15)?;
+            //            self.write_register(Register::ResolutionL, 0x15)?;
+            self.write_register(Register::ResolutionL, 0x5)?;
+            // self.write_register(Register::ResolutionH, 0x15)?;
+            self.write_register(Register::ResolutionH, 0x00)?;
 
-            // adns_com_end();
+            // adns_com_end(); // why the CS is already high
             self.com_end();
             Ok(())
         }
-
-        // /// Read multiple bytes starting from the `start_reg` register.
-        // /// This function will attempt to fill the provided buffer.
-        // fn read_many(&mut self, start_reg: Register, buffer: &mut [u8]) -> Result<(), E> {
-        //     let _ = self.cs.set_low();
-        //     buffer[0] = start_reg.addr() | MULTI | READ;
-        //     self.spi.transfer(buffer)?;
-        //     let _ = self.cs.set_high();
-
-        //     Ok(())
-        // }
-
-        // /// Change configuration in register
-        // ///
-        // /// Helper function to update a particular part of a register without
-        // /// affecting other parts of the register that might contain desired
-        // /// configuration. This allows the `L3gd20` struct to be used like
-        // /// a builder interface when configuring specific parameters.
-        // fn change_config<B: BitValue>(&mut self, reg: Register, bits: B) -> Result<&mut Self, E> {
-        //     // Create bit mask from width and shift of value
-        //     let mask = B::mask() << B::shift();
-        //     // Extract the value as u8
-        //     let bits = (bits.value() << B::shift()) & mask;
-        //     // Read current value of register
-        //     let current = self.read_register(reg)?;
-        //     // Use supplied mask so we don't affect more than necessary
-        //     let masked = current & !mask;
-        //     // Use `or` to apply the new value without affecting other parts
-        //     let new_reg = masked | bits;
-        //     self.write_register(reg, new_reg)?;
-        //     Ok(self)
-        // }
     }
 
     // const unsigned char firmware_data[] PROGMEM

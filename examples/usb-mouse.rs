@@ -111,7 +111,7 @@ pub mod hid {
                 &[
                     0x01,                   // bcdHID
                     0x01,                   // bcdHID
-                    0x00,                   // bContryCode
+                    0x00,                   // bCountryCode
                     0x01,                   // bNumDescriptors
                     0x22,                   // bDescriptorType
                     descr_len as u8,        // wDescriptorLength
@@ -253,8 +253,6 @@ const APP: () = {
 
         *USB_BUS = Some(UsbBus::new(usb, EP_MEMORY));
 
-        // let usb_bus = UsbBus::new(usb, unsafe { &mut EP_MEMORY });
-
         let hid = HIDClass::new(USB_BUS.as_ref().unwrap());
 
         let usb_dev = UsbDeviceBuilder::new(USB_BUS.as_ref().unwrap(), UsbVidPid(0xc410, 0x0000))
@@ -296,28 +294,8 @@ const APP: () = {
         }
     }
 
-    // #[task(binds=USB_HP_CAN_TX, resources = [counter, led, usb_dev, hid])]
-    // fn usb_tx(mut cx: usb_tx::Context) {
-    //     usb_poll(
-    //         &mut cx.resources.counter,
-    //         &mut cx.resources.led,
-    //         &mut cx.resources.usb_dev,
-    //         &mut cx.resources.hid,
-    //     );
-    // }
-
-    // #[task(binds=USB_LP_CAN_RX0, resources = [counter, led, usb_dev, hid])]
-    // fn usb_rx(mut cx: usb_rx::Context) {
-    //     usb_poll(
-    //         &mut cx.resources.counter,
-    //         &mut cx.resources.led,
-    //         &mut cx.resources.usb_dev,
-    //         &mut cx.resources.hid,
-    //     );
-    // }
-
     #[task(binds=OTG_FS, resources = [counter, led, usb_dev, hid])]
-    fn usb_rx(mut cx: usb_rx::Context) {
+    fn usb_fs(mut cx: usb_fs::Context) {
         usb_poll(
             &mut cx.resources.counter,
             &mut cx.resources.led,

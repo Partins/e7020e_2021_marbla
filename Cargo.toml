@@ -11,6 +11,7 @@ cortex-m-rt = "0.6.13"
 cortex-m-semihosting = "0.3.7"
 cortex-m-rtic = "0.5.5"
 embedded-hal = "0.2.4"
+usb-device = "0.2.7"
 
 # Panic handlers, comment all but one to generate doc!
 panic-halt = "0.2.0"
@@ -37,7 +38,7 @@ features = ["stm32f411", "rt"]
 
 [dependencies.stm32f4xx-hal]
 version = "0.8.3"
-features = ["rt", "stm32f411"] 
+features = ["rt", "stm32f411", "usb_fs"] 
 
 # this lets you use `cargo fix`!
 [[bin]]

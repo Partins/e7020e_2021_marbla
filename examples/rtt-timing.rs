@@ -1,4 +1,5 @@
 //! examples/rtt_timing.rs
+//! cargo run --examples rtt-timing
 
 #![deny(unsafe_code)]
 #![deny(warnings)]

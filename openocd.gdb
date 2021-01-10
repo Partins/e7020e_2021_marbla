@@ -32,7 +32,7 @@ monitor tpiu config internal itm.txt uart off 16000000
 # monitor tpiu config external uart off 8000000 2000000
 
 # # enable ITM port 0
-# monitor itm port 0 on
+monitor itm port 0 on
 
 load
 

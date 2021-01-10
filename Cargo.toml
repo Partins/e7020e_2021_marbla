@@ -39,6 +39,7 @@ features = ["stm32f411", "rt"]
 [dependencies.stm32f4xx-hal]
 version = "0.8.3"
 features = ["rt", "stm32f411", "usb_fs"] 
+git = "https://github.com/stm32-rs/stm32f4xx-hal"
 
 # this lets you use `cargo fix`!
 [[bin]]

@@ -5,7 +5,7 @@
 
 use cortex_m::peripheral::DWT;
 use cortex_m_semihosting::hprintln;
-use panic_halt as _;
+use panic_rtt_target as _;
 use rtic::cyccnt::{Instant, U32Ext as _};
 use stm32f4xx_hal::stm32;
 

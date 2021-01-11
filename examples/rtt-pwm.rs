@@ -29,8 +29,8 @@ const APP: () = {
 
         let gpioa = dp.GPIOA.split();
         let channels = (
-            gpioa.pa8.into_alternate_af1().set_speed(Speed::Low),
-            gpioa.pa9.into_alternate_af1(),
+            gpioa.pa8.into_alternate_af1().set_speed(Speed::High),
+            gpioa.pa9.into_alternate_af1().set_speed(Speed::High),
         );
 
         let pwm = pwm::tim1(dp.TIM1, channels, clocks, 1u32.khz());
@@ -41,6 +41,8 @@ const APP: () = {
         ch1.enable();
         ch2.set_duty((max_duty * 1) / 2);
         ch2.enable();
+
+
     }
 
     #[idle]

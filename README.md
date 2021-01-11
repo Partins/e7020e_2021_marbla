@@ -20,9 +20,6 @@
 - General Embedded
   - [Introduction to SPI](https://www.analog.com/en/analog-dialogue/articles/introduction-to-spi-interface.html#), a short introduction to the SPI interface.
 
-
-
-
 ---
 
 ## Connections
@@ -40,5 +37,61 @@ D+ used for re-enumeration
 
 ## Debug interface
 
-- Serial Wire debugging uses pins PA13 and PA14.
-  
+- Serial Wire debugging uses pins PA13 and PA14. So refrain from using those unless absolutely necessary.
+
+## Troubleshooting
+
+### Fail to connect with openocd
+
+First check that your stilnk nucleo programmer is found by the host.
+
+```shell
+> lsusb
+...
+Bus 003 Device 013: ID 0483:374b STMicroelectronics ST-LINK/V2.1
+...
+```
+
+If not check your USB cable. Notice, you need a USB data cable (not a USB charging cable).
+If the problem is still there, there might be a USB issue with the host (or VM if you run Linux under a VM that is).
+
+If you get a connection error similar to the below:
+
+```shell
+> openocd -f openocd.cfg
+Open On-Chip Debugger 0.10.0+dev-01157-gd6541a811-dirty (2020-03-28-18:34)
+Licensed under GNU GPL v2
+For bug reports, read
+        http://openocd.org/doc/doxygen/bugs.html
+Info : auto-selecting first available session transport "hla_swd". To override use 'transport select <transport>'.
+Info : The selected transport took over low-level target control. The results might differ compared to plain JTAG/SWD
+Info : Listening on port 6666 for tcl connections
+Info : Listening on port 4444 for telnet connections
+Info : clock speed 2000 kHz
+Info : STLINK V2J37M26 (API v2) VID:PID 0483:374B
+Info : Target voltage: 3.243627
+Info : stm32f4x.cpu: hardware has 6 breakpoints, 4 watchpoints
+Info : Listening on port 3333 for gdb connections
+Error: jtag status contains invalid mode value - communication failure
+Polling target stm32f4x.cpu failed, trying to reexamine
+Examination failed, GDB will be halted. Polling again in 100ms
+Info : Previous state query failed, trying to reconnect
+Error: jtag status contains invalid mode value - communication failure
+Polling target stm32f4x.cpu failed, trying to reexamine 
+```
+
+First thing to try is holding the reset button while connecting.
+
+If this does not work you can try to erase the flash memory (the program running on the STM32F401/F11).
+
+``` shell
+> st-util erase
+st-flash 1.6.1
+2021-01-11T16:02:14 INFO common.c: F4xx (Dynamic Efficency): 96 KiB SRAM, 512 KiB flash in at least 16 KiB pages.
+Mass erasing.......
+```
+
+If this still does not work you can connect `Boot0` to `VDD` (found on CN7 pins 7, and 5 respectively). Unplug/replug the Nucleo and try to erase the flash as above.
+
+If this still does not work, the Nucleo might actually been damaged, or that the problem is the usb-cable or host machine related.
+

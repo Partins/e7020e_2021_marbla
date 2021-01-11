@@ -41,7 +41,7 @@
                     }
                 ]
             },
-            "executable": "./target/thumbv7em-none-eabi/debug/examples/${fileBasenameNoExtension}",
+            "executable": "./target/thumbv7em-none-eabihf/debug/examples/${fileBasenameNoExtension}",
             "cpu": "cortex-m4",
         },
         {
@@ -76,7 +76,7 @@
                     }
                 ]
             },
-            "executable": "./target/thumbv7em-none-eabi/release/examples/${fileBasenameNoExtension}",
+            "executable": "./target/thumbv7em-none-eabihf/release/examples/${fileBasenameNoExtension}",
             "cpu": "cortex-m4",
         },
         {
@@ -98,7 +98,7 @@
             "postLaunchCommands": [
                 "monitor arm semihosting enable"
             ],
-            "executable": "./target/thumbv7em-none-eabi/release/examples/${fileBasenameNoExtension}",
+            "executable": "./target/thumbv7em-none-eabihf/release/examples/${fileBasenameNoExtension}",
             "cpu": "cortex-m4",
         },
     ]

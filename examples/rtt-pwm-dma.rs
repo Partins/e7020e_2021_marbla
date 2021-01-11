@@ -46,18 +46,22 @@ const APP: () = {
         // At this point it has been contrained into SysConf and used to set clocks
         let rcc = unsafe { &(*stm32::RCC::ptr()) };
 
-        // pwm_all_channels!(TIM1: (tim1, apb2enr, apb2rstr, 0u8, pclk2, ppre2));
+        // // pwm_all_channels!(TIM1: (tim1, apb2enr, apb2rstr, 0u8, pclk2, ppre2));
 
-        // Enable and reset the timer peripheral,
-        // it's the same bit position for both registers (0 in this case)
-        // Notice the use of bit banding to set/clear bits individually
-        // It is unsafe, as the register address could be anything within range
-        // of the bitband region
-        unsafe {
-            bb::set(&rcc.apb2enr, 0u8);
-            bb::set(&rcc.apb2rstr, 0u8);
-            bb::clear(&rcc.apb2rstr, 0u8);
-        }
+        // // Enable and reset the timer peripheral,
+        // // it's the same bit position for both registers (0 in this case)
+        // // Notice the use of bit banding to set/clear bits individually
+        // // It is unsafe, as the register address could be anything within range
+        // // of the bitband region
+        // unsafe {
+        //     bb::set(&rcc.apb2enr, 0u8);
+        //     bb::set(&rcc.apb2rstr, 0u8);
+        //     bb::clear(&rcc.apb2rstr, 0u8);
+        // }
+        rcc.apb2enr.modify(|_, w| w.tim1en().set_bit());
+        rcc.apb2rstr.modify(|_, w| w.tim1rst().set_bit());
+        rcc.apb2rstr.modify(|_, w| w.tim1rst().clear_bit());
+
         // Setup chanel 1 and 2 as pwm_mode1
         tim1.ccmr1_output()
             .modify(|_, w| w.oc1pe().set_bit().oc1m().pwm_mode1());
@@ -120,18 +124,18 @@ const APP: () = {
 
         tim1.dier.write(|w| w.uie().enabled());
 
-        loop {
-            for i in 0..255 {
-                tim1.ccr1.write(|w| unsafe { w.ccr().bits(i) });
-                tim1.ccr2.write(|w| unsafe { w.ccr().bits(i) });
-                // rprintln!("-");
-                //while tim1.sr.read().uif().is_clear() {
-                while !tim1.sr.read().uif().is_clear() {
-                    rprintln!("-");
-                }
-                // rprintln!("!");
-            }
-        }
+        // loop {
+        //     for i in 0..255 {
+        //         tim1.ccr1.write(|w| unsafe { w.ccr().bits(i) });
+        //         tim1.ccr2.write(|w| unsafe { w.ccr().bits(i) });
+        //         // rprintln!("-");
+        //         //while tim1.sr.read().uif().is_clear() {
+        //         while !tim1.sr.read().uif().is_clear() {
+        //             rprintln!("-");
+        //         }
+        //         // rprintln!("!");
+        //     }
+        // }
     }
 
     #[idle]

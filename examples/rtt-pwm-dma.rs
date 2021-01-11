@@ -8,7 +8,7 @@
 
 use cortex_m::{asm, peripheral::DWT};
 use panic_halt as _;
-use rtt_target::{rprintln, rtt_init_print};
+use rtt_target::{rprint, rprintln, rtt_init_print};
 use stm32f4xx_hal::{bb, dma, gpio::Speed, prelude::*, pwm, stm32};
 
 #[rtic::app(device = stm32f4xx_hal::stm32, peripherals = true)]
@@ -123,19 +123,24 @@ const APP: () = {
         tim1.cr2.write(|w| w.ccpc().set_bit());
 
         tim1.dier.write(|w| w.uie().enabled());
+        tim1.sr.modify(|_, w| w.uif().clear());
 
-        // loop {
-        //     for i in 0..255 {
-        //         tim1.ccr1.write(|w| unsafe { w.ccr().bits(i) });
-        //         tim1.ccr2.write(|w| unsafe { w.ccr().bits(i) });
-        //         // rprintln!("-");
-        //         //while tim1.sr.read().uif().is_clear() {
-        //         while !tim1.sr.read().uif().is_clear() {
-        //             rprintln!("-");
-        //         }
-        //         // rprintln!("!");
-        //     }
-        // }
+        while tim1.sr.read().uif().is_clear() {
+            rprint!("-");
+        }
+        rprintln!("here");
+        tim1.sr.modify(|_, w| w.uif().clear());
+
+        loop {
+            for i in 0..256 {
+                // wait until next update event
+                while tim1.sr.read().uif().is_clear() {}
+                tim1.sr.modify(|_, w| w.uif().clear());
+
+                tim1.ccr1.write(|w| unsafe { w.ccr().bits(i) });
+                tim1.ccr2.write(|w| unsafe { w.ccr().bits(i) });
+            }
+        }
     }
 
     #[idle]

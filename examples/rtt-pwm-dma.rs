@@ -115,13 +115,23 @@ const APP: () = {
         tim1.ccr1.write(|w| unsafe { w.ccr().bits(128) });
         tim1.ccr2.write(|w| unsafe { w.ccr().bits(128) });
 
-        // loop {
-        //     for i in 0..255 {
-        //         tim1.ccr1.write(|w| unsafe { w.ccr().bits(i) });
-        //         tim1.ccr2.write(|w| unsafe { w.ccr().bits(i) });
-        //         while tim1.sr.read().tif().is_no_trigger() {}
-        //     }
-        // }
+        // Set preload for the CCx
+        tim1.cr2.write(|w| w.ccpc().set_bit());
+
+        tim1.dier.write(|w| w.uie().enabled());
+
+        loop {
+            for i in 0..255 {
+                tim1.ccr1.write(|w| unsafe { w.ccr().bits(i) });
+                tim1.ccr2.write(|w| unsafe { w.ccr().bits(i) });
+                // rprintln!("-");
+                //while tim1.sr.read().uif().is_clear() {
+                while !tim1.sr.read().uif().is_clear() {
+                    rprintln!("-");
+                }
+                // rprintln!("!");
+            }
+        }
     }
 
     #[idle]

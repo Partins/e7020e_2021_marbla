@@ -1,15 +1,15 @@
-//! examples/rtt-pwm-dma.rs
-//! cargo run --examples rtt-pwm-dma
+//! examples/rtt-pwm-saw.rs
+//! cargo run --examples rtt-pwm-saw
 
 // #![deny(unsafe_code)]
-// #![deny(warnings)]
+#![deny(warnings)]
 #![no_main]
 #![no_std]
 
-use cortex_m::{asm, peripheral::DWT};
+// use cortex_m::{asm, peripheral::DWT};
 use panic_halt as _;
 use rtt_target::{rprint, rprintln, rtt_init_print};
-use stm32f4xx_hal::{bb, dma, gpio::Speed, prelude::*, pwm, stm32};
+use stm32f4xx_hal::{bb, gpio::Speed, prelude::*, stm32};
 
 #[rtic::app(device = stm32f4xx_hal::stm32, peripherals = true)]
 const APP: () = {
@@ -35,7 +35,7 @@ const APP: () = {
         let gpioa = dp.GPIOA.split();
         // we set the pins to VeryHigh to get the sharpest waveform possible
         // (rise and fall times should have similar characteristics)
-        let channels = (
+        let _channels = (
             gpioa.pa8.into_alternate_af1().set_speed(Speed::VeryHigh),
             gpioa.pa9.into_alternate_af1().set_speed(Speed::VeryHigh),
         );
@@ -43,9 +43,17 @@ const APP: () = {
         // Setup PWM RAW
         let tim1 = dp.TIM1;
         // Here we need unsafe as we are "stealing" the RCC peripheral
-        // At this point it has been contrained into SysConf and used to set clocks
+        // (At this point it has been constrained into SysConf and used to set clocks.)
         let rcc = unsafe { &(*stm32::RCC::ptr()) };
 
+        // unsafe {
+        //     bb::set(&rcc.apb2enr, 0u8);
+        //     bb::set(&rcc.apb2rstr, 0u8);
+        //     bb::clear(&rcc.apb2rstr, 0u8);
+        // }
+        //
+        // For some reason bb:: hangs target in release mode,
+        // so I implemented it using modify instead
         rcc.apb2enr.modify(|_, w| w.tim1en().set_bit());
         rcc.apb2rstr.modify(|_, w| w.tim1rst().set_bit());
         rcc.apb2rstr.modify(|_, w| w.tim1rst().clear_bit());

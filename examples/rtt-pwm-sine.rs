@@ -1,5 +1,5 @@
 //! examples/rtt-pwm-sine.rs
-//! cargo run --examples rtt-pwm-sine
+//! cargo run --examples rtt-pwm-sine --release
 
 // #![deny(unsafe_code)]
 // #![deny(warnings)]
@@ -90,10 +90,7 @@ const APP: () = {
         tim1.bdtr.modify(|_, w| w.moe().set_bit());
 
         // Set output enable for channels 1 and 2
-        // Channel 1 (bit  0)
-        unsafe { bb::set(&tim1.ccer, 0) }
-        // Channel 4 (bit  0)
-        unsafe { bb::set(&tim1.ccer, 4) }
+        tim1.ccer.write(|w| w.cc1e().set_bit().cc2e().set_bit());
 
         // Setup the timer
         tim1.cr1.write(|w| {
@@ -107,56 +104,9 @@ const APP: () = {
                 .set_bit()
         });
 
-        // Setup TIMER2
-        let tim2 = dp.TIM2;
-        // Here we need unsafe as we are "stealing" the RCC peripheral
-        // At this point it has been contrained into SysConf and used to set clocks
-        let rcc = unsafe { &(*stm32::RCC::ptr()) };
-
-        rcc.apb1enr.modify(|_, w| w.tim2en().set_bit());
-        rcc.apb1rstr.modify(|_, w| w.tim2rst().set_bit());
-        rcc.apb1rstr.modify(|_, w| w.tim2rst().clear_bit());
-
-        // auto-reload, preload
-        tim1.cr1.modify(|_, w| w.arpe().set_bit());
-
-        let clk = clocks.pclk2().0 * if clocks.ppre2() == 1 { 1 } else { 2 };
-        // check that its actually 48_000_000
-        rprintln!("clk {}", clk);
-
-        // assuinclude!(concat!(env!("OUT_DIR"), "/sin.rs"));c.write(|w| w.psc().bits(pre));
-
-        // we want 8 bits of resolution
-        // so our ARR = 2^8 - 1 = 256 - 1 = 255
-        let arr = 255;
-        rprintln!("arr {}", arr);
-        tim1.arr.write(|w| unsafe { w.bits(arr) });
-
-        //  Trigger update event to load the registers
-        tim1.cr1.modify(|_, w| w.urs().set_bit());
-        tim1.egr.write(|w| w.ug().set_bit());
-        tim1.cr1.modify(|_, w| w.urs().clear_bit());
 
         // Set main output enable of all Output Compare (OC) registers
         tim1.bdtr.modify(|_, w| w.moe().set_bit());
-
-        // Set output enable for channels 1 and 2
-        // Channel 1 (bit  0)
-        unsafe { bb::set(&tim1.ccer, 0) }
-        // Channel 4 (bit  0)
-        unsafe { bb::set(&tim1.ccer, 4) }
-
-        // Setup the timer
-        tim1.cr1.write(|w| {
-            w.cms()
-                .bits(0b00) // edge aligned mode
-                .dir() // counter used as upcounter
-                .clear_bit()
-                .opm() // one pulse mode
-                .clear_bit()
-                .cen() // enable counter
-                .set_bit()
-        });
 
         // Set duty cycle of Channels
         tim1.ccr1.write(|w| unsafe { w.ccr().bits(128) });

@@ -26,24 +26,33 @@
 
 - [USB Cable]
 
-| Signl | Color | Pin  |
-| ----- | ----- | ---- |
-| V+    | Red   | ---- |
-| D-    | White | PA11 |
-| D+    | Green | PA12 |
-| Gnd   | Black | ---- |
+| Signal | Color | Pin  |
+| ------ | ----- | ---- |
+| V+     | Red   | ---- |
+| D-     | White | PA11 |
+| D+     | Green | PA12 |
+| Gnd    | Black | ---- |
 
 D+ used for re-enumeration
+
+---
 
 ## Debug interface
 
 - Serial Wire debugging uses pins PA13 and PA14. So refrain from using those unless absolutely necessary.
 
+---
+
+## Examples
+
+
+---
+
 ## Troubleshooting
 
 ### Fail to connect with openocd
 
-First check that your stilnk nucleo programmer is found by the host.
+First check that your stlink nucleo programmer is found by the host.
 
 ```shell
 > lsusb

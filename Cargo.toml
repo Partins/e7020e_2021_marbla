@@ -20,7 +20,7 @@ panic-halt = "0.2.0"
 #panic-itm = "0.4.2"
 
 # Uncomment for the rtt-timing example.
-panic-rtt-target = { version = "0.1.1", features = ["cortex-m"] }
+# panic-rtt-target = { version = "0.1.1", features = ["cortex-m"] }
 
 # Uncomment for the panic example.
 #panic-semihosting = "0.5.6"

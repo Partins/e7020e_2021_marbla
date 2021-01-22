@@ -1,15 +1,19 @@
-//! examples/rtt-pwm-dma.rs
-//! cargo run --examples rtt-pwm-dma
+//! examples/rtt-pwm-sine.rs
+//! cargo run --examples rtt-pwm-sine
 
 // #![deny(unsafe_code)]
 // #![deny(warnings)]
 #![no_main]
 #![no_std]
 
+use core::f32::consts::PI;
 use cortex_m::{asm, peripheral::DWT};
 use panic_halt as _;
 use rtt_target::{rprint, rprintln, rtt_init_print};
+
 use stm32f4xx_hal::{bb, dma, gpio::Speed, prelude::*, pwm, stm32};
+
+include!(concat!(env!("OUT_DIR"), "/sin_abs_const.rs"));
 
 #[rtic::app(device = stm32f4xx_hal::stm32, peripherals = true)]
 const APP: () = {
@@ -120,10 +124,7 @@ const APP: () = {
         // check that its actually 48_000_000
         rprintln!("clk {}", clk);
 
-        // assume we have a sine at
-        let pre = 0;
-        rprintln!("pre {}", pre);
-        tim2.psc.write(|w| w.psc().bits(pre));
+        // assuinclude!(concat!(env!("OUT_DIR"), "/sin.rs"));c.write(|w| w.psc().bits(pre));
 
         // we want 8 bits of resolution
         // so our ARR = 2^8 - 1 = 256 - 1 = 255
@@ -167,30 +168,46 @@ const APP: () = {
         tim1.dier.write(|w| w.uie().enabled());
         tim1.sr.modify(|_, w| w.uif().clear());
 
+        // Set divider to 4, (48_000_000/256)/4
+        tim1.rcr.modify(|_, w| unsafe { w.rep().bits(4) });
+
         while tim1.sr.read().uif().is_clear() {
             rprint!("-");
         }
         rprintln!("here");
         tim1.sr.modify(|_, w| w.uif().clear());
 
-        let mut dma_buff = [0u8; 256];
-        for i in 0..256 {
-            dma_buff[i] = i as u8;
-        }
-
         loop {
-            for i in 0..256 {
+            for i in 0..SINE_BUF_SIZE {
                 // wait until next update event
+
                 while tim1.sr.read().uif().is_clear() {}
                 tim1.sr.modify(|_, w| w.uif().clear());
 
                 tim1.ccr1
-                    .write(|w| unsafe { w.ccr().bits(dma_buff[i] as u16) });
+                    .write(|w| unsafe { w.ccr().bits(SINE_BUF[i] as u16) });
                 tim1.ccr2
-                    .write(|w| unsafe { w.ccr().bits(dma_buff[i] as u16) });
+                    .write(|w| unsafe { w.ccr().bits(SINE_BUF[i] as u16) });
             }
         }
     }
+
+    // [task(resources = [GPIOA], schedule = [toggle])]
+    // fn toggle(cx: toggle::Context) {
+    //     static mut TOGGLE: bool = false;
+    //     hprintln!("foo  @ {:?}", Instant::now()).unwrap();
+
+    //     if *TOGGLE {
+    //         cx.resources.GPIOA.bsrr.write(|w| w.bs5().set_bit());
+    //     } else {
+    //         cx.resources.GPIOA.bsrr.write(|w| w.br5().set_bit());
+    //     }
+
+    //     *TOGGLE = !*TOGGLE;
+    //     cx.schedule
+    //         .toggle(cx.scheduled + 8_000_000.cycles())
+    //         .unwrap();
+    // }
 
     #[idle]
     fn idle(_cx: idle::Context) -> ! {

@@ -134,19 +134,6 @@ const APP: () = {
         rprintln!("here");
         tim1.sr.modify(|_, w| w.uif().clear());
 
-        // loop {
-        //     for i in 0..SINE_BUF_SIZE {
-        //         // wait until next update event
-
-        //         while tim1.sr.read().uif().is_clear() {}
-        //         tim1.sr.modify(|_, w| w.uif().clear());
-
-        //         tim1.ccr1
-        //             .write(|w| unsafe { w.ccr().bits(SINE_BUF[i] as u16) });
-        //         tim1.ccr2
-        //             .write(|w| unsafe { w.ccr().bits(SINE_BUF[i] as u16) });
-        //     }
-        // }
         // pass on late resources
         cx.schedule.pwmout(cx.start + PERIOD.cycles()).ok();
         init::LateResources { TIM1: tim1 }
@@ -172,7 +159,7 @@ const APP: () = {
         tim1.ccr1.write(|w| unsafe { w.ccr().bits(*LEFT) });
         tim1.ccr2.write(|w| unsafe { w.ccr().bits(*RIGHT) });
 
-        *INDEX = (*INDEX).wrapping_add(25oo);
+        *INDEX = (*INDEX).wrapping_add(25);
         cx.schedule.pwmout(cx.scheduled + PERIOD.cycles()).ok();
 
         *LEFT = SINE_BUF[*INDEX as usize] as u16;
@@ -190,4 +177,4 @@ const APP: () = {
 
 // We aim for a sampling rate of 48kHz, assuming that the input filter of the
 // sound card used to sample the generated signal has an appropriate input filter
-const PERIOD: u32 = 1000; // 48_000_000 / 48_000;
+const PERIOD: u32 = 2000; // 96_000_000 / 48_000;

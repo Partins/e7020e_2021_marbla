@@ -1,24 +1,35 @@
-//! examples/rtt-pwm-sine.rs
-//! cargo run --examples rtt-pwm-sine --release
+//! cargo run --examples rtt-pwm-sine-timer-task --release
 
 // #![deny(unsafe_code)]
 // #![deny(warnings)]
 #![no_main]
 #![no_std]
 
-use core::f32::consts::PI;
 use cortex_m::{asm, peripheral::DWT};
-use panic_halt as _;
+use panic_rtt_target as _;
+use rtic::cyccnt::{Instant, U32Ext as _};
 use rtt_target::{rprint, rprintln, rtt_init_print};
 
-use stm32f4xx_hal::{bb, dma, gpio::Speed, prelude::*, pwm, stm32};
+use stm32f4xx_hal::{
+    gpio::Speed,
+    prelude::*,
+    pwm, stm32,
+    timer::{Event, Timer},
+};
 
 include!(concat!(env!("OUT_DIR"), "/sin_abs_const.rs"));
 
-#[rtic::app(device = stm32f4xx_hal::stm32, peripherals = true)]
+type Timer2 = Timer<stm32::TIM2>;
+
+#[rtic::app(device = stm32f4xx_hal::stm32,  monotonic = rtic::cyccnt::CYCCNT, peripherals = true)]
 const APP: () = {
-    #[init]
-    fn init(mut cx: init::Context) {
+    struct Resources {
+        // late resources
+        TIM1: stm32::TIM1,
+        timer2: Timer2,
+    }
+    #[init(schedule = [])]
+    fn init(mut cx: init::Context) -> init::LateResources {
         rtt_init_print!();
         rprintln!("init");
         let dp = cx.device;
@@ -32,7 +43,8 @@ const APP: () = {
         let clocks = rcc
             .cfgr
             // .use_hse(8.mhz())
-            .sysclk(48.mhz())
+            // .sysclk(48.mhz())
+            .sysclk(96.mhz())
             .pclk1(24.mhz())
             .freeze();
 
@@ -119,7 +131,7 @@ const APP: () = {
         tim1.sr.modify(|_, w| w.uif().clear());
 
         // Set divider to 4, (48_000_000/256)/4
-        tim1.rcr.modify(|_, w| unsafe { w.rep().bits(4) });
+        // tim1.rcr.modify(|_, w| unsafe { w.rep().bits(4) });
 
         while tim1.sr.read().uif().is_clear() {
             rprint!("-");
@@ -127,47 +139,47 @@ const APP: () = {
         rprintln!("here");
         tim1.sr.modify(|_, w| w.uif().clear());
 
-        loop {
-            for i in 0..SINE_BUF_SIZE {
-                // wait until next update event
-
-                while tim1.sr.read().uif().is_clear() {}
-                tim1.sr.modify(|_, w| w.uif().clear());
-
-                tim1.ccr1
-                    .write(|w| unsafe { w.ccr().bits(SINE_BUF[i] as u16) });
-                tim1.ccr2
-                    .write(|w| unsafe { w.ccr().bits(SINE_BUF[i] as u16) });
-            }
+        let mut tim2: Timer<stm32::TIM2> = Timer::tim2(dp.TIM2, 48000, clocks);
+        tim2.listen(Event::TimeOut);
+        init::LateResources {
+            TIM1: tim1,
+            timer2: tim2,
         }
-    }
-
-    #[task(resources = [GPIOA], schedule = [toggle])]
-    fn toggle(cx: toggle::Context) {
-        static mut TOGGLE: bool = false;
-        hprintln!("foo  @ {:?}", Instant::now()).unwrap();
-
-        if *TOGGLE {
-            cx.resources.GPIOA.bsrr.write(|w| w.bs5().set_bit());
-        } else {
-            cx.resources.GPIOA.bsrr.write(|w| w.br5().set_bit());
-        }
-
-        *TOGGLE = !*TOGGLE;
-        cx.schedule
-            .toggle(cx.scheduled + 8_000_000.cycles())
-            .unwrap();
-    }
-
-    extern "C" {
-        fn EXTI0();
     }
 
     #[idle]
     fn idle(_cx: idle::Context) -> ! {
         rprintln!("idle");
+        // panic!("panic");
         loop {
+            rprintln!("-");
             continue;
         }
     }
+
+    #[task(binds = TIM2, resources = [TIM1, timer2])]
+    fn tim2(cx: tim2::Context) {
+        static mut INDEX: u8 = 0;
+        static mut LEFT: u16 = 0;
+        static mut RIGHT: u16 = 0;
+        cx.resources.timer2.clear_interrupt(Event::TimeOut);
+
+        let tim1 = cx.resources.TIM1;
+
+        tim1.ccr1.write(|w| unsafe { w.ccr().bits(*LEFT) });
+        tim1.ccr2.write(|w| unsafe { w.ccr().bits(*RIGHT) });
+
+        *INDEX = (*INDEX).wrapping_add(25);
+
+        *LEFT = SINE_BUF[*INDEX as usize] as u16;
+        *RIGHT = SINE_BUF[*INDEX as usize] as u16;
+    }
+
+    extern "C" {
+        fn EXTI0();
+    }
 };
+
+// We aim for a sampling rate of 48kHz, assuming that the input filter of the
+// sound card used to sample the generated signal has an appropriate input filter
+const PERIOD: u32 = 1000; // 48_000_000 / 48_000;

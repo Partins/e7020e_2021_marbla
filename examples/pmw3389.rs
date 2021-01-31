@@ -10,7 +10,10 @@ use panic_halt as _;
 use rtic::cyccnt::{Instant, U32Ext as _};
 use stm32f4xx_hal::{dwt::Dwt, gpio::Speed, prelude::*, rcc::Clocks, spi::Spi, stm32};
 
-use app::{pmw3389, DwtDelay};
+use app::{
+    pmw3389::{self, Register},
+    DwtDelay,
+};
 use rtt_target::{rprint, rprintln, rtt_init_print};
 
 //use crate::hal::gpio::{gpioa::PA0, Edge, Input, PullDown};
@@ -92,6 +95,40 @@ const APP: () = {
         rprintln!("1000ms {}", t2.wrapping_sub(t1));
 
         let mut pmw3389 = pmw3389::Pmw3389::new(spi, cs, delay).unwrap();
+
+        let mut delay = DwtDelay::new(&mut core.DWT, clocks);
+
+        // loop {
+        //     pmw3389.write_register(Register::Motion, 0x01).ok();
+
+        //     let motion = pmw3389.read_register(Register::Motion).unwrap();
+        //     let xl = pmw3389.read_register(Register::DeltaXL).unwrap();
+        //     let xh = pmw3389.read_register(Register::DeltaXH).unwrap();
+        //     let yl = pmw3389.read_register(Register::DeltaYL).unwrap();
+        //     let yh = pmw3389.read_register(Register::DeltaYH).unwrap();
+
+        //     let x = (xl as u16 + (xh as u16) << 8) as i16;
+        //     let y = (yl as u16 + (yh as u16) << 8) as i16;
+
+        //     let surface = motion & 0x08;
+        //     let motion_detect = motion & 0x80;
+
+        //     rprintln!(
+        //         "motion {}, surface {}, (x, y) {:?}",
+        //         motion_detect,
+        //         surface,
+        //         (x, y),
+        //     );
+        //     delay.delay_ms(200);
+        // }
+
+        // set in burst mode
+        pmw3389.write_register(Register::MotionBurst, 0x00);
+
+        loop {
+            pmw3389.read_status().unwrap();
+            delay.delay_ms(200);
+        }
 
         let id = pmw3389.product_id().unwrap();
         rprintln!("id {}", id);

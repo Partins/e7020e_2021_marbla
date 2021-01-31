@@ -181,29 +181,29 @@ where
         let srom_id = pmw3389.read_register(Register::SROMId)?;
         rprintln!("srom_id {}, 0x{:x}", srom_id, srom_id);
 
-        loop {
-            pmw3389.write_register(Register::Motion, 0x01)?;
+        // loop {
+        //     pmw3389.write_register(Register::Motion, 0x01)?;
 
-            let motion = pmw3389.read_register(Register::Motion)?;
-            let xl = pmw3389.read_register(Register::DeltaXL)?;
-            let xh = pmw3389.read_register(Register::DeltaXH)?;
-            let yl = pmw3389.read_register(Register::DeltaYL)?;
-            let yh = pmw3389.read_register(Register::DeltaYH)?;
+        //     let motion = pmw3389.read_register(Register::Motion)?;
+        //     let xl = pmw3389.read_register(Register::DeltaXL)?;
+        //     let xh = pmw3389.read_register(Register::DeltaXH)?;
+        //     let yl = pmw3389.read_register(Register::DeltaYL)?;
+        //     let yh = pmw3389.read_register(Register::DeltaYH)?;
 
-            let x = (xl as u16 + (xh as u16) << 8) as i16;
-            let y = (yl as u16 + (yh as u16) << 8) as i16;
+        //     let x = (xl as u16 + (xh as u16) << 8) as i16;
+        //     let y = (yl as u16 + (yh as u16) << 8) as i16;
 
-            let surface = motion & 0x08;
-            let motion_detect = motion & 0x80;
+        //     let surface = motion & 0x08;
+        //     let motion_detect = motion & 0x80;
 
-            rprintln!(
-                "motion {}, surface {}, (x, y) {:?}",
-                motion_detect,
-                surface,
-                (x, y),
-            );
-            pmw3389.delay.delay_ms(200);
-        }
+        //     rprintln!(
+        //         "motion {}, surface {}, (x, y) {:?}",
+        //         motion_detect,
+        //         surface,
+        //         (x, y),
+        //     );
+        //     pmw3389.delay.delay_ms(200);
+        // }
 
         // self.spi.transfer(&mut [Register::MotionBurst.addr()])?;
         // self.delay.delay_ms(35); // waits for tSRAD
@@ -213,7 +213,7 @@ where
         //     pmw3389.delay.delay_ms(10);
         // }
 
-        // Ok(pmw3389)
+        Ok(pmw3389)
     }
 
     pub fn read_register(&mut self, reg: Register) -> Result<u8, E> {
@@ -269,10 +269,14 @@ where
     }
 
     /// Read status
-    pub fn read_status(&mut self, itm: &mut stm32::ITM) -> Result<(), E> {
+    pub fn read_status(&mut self) -> Result<(), E> {
         self.com_begin();
 
+        // self.write_register(Register::Motion, 0x01)?;
+
         self.spi.transfer(&mut [Register::MotionBurst.addr()])?;
+        // self.write_register(Register::MotionBurst, 0x00);
+
         self.delay.delay_us(35); // waits for tSRAD
 
         // read burst buffer

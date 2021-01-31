@@ -23,7 +23,7 @@ const APP: () = {
         // late resources
         TIM1: stm32::TIM1,
     }
-    #[init(schedule = [pwmout])]
+    #[init(schedule = [pwm_out])]
     fn init(mut cx: init::Context) -> init::LateResources {
         rtt_init_print!();
         rprintln!("init");
@@ -46,7 +46,7 @@ const APP: () = {
         let gpioa = dp.GPIOA.split();
         // we set the pins to VeryHigh to get the sharpest waveform possible
         // (rise and fall times should have similar characteristics)
-        let channels = (
+        let _channels = (
             gpioa.pa8.into_alternate_af1().set_speed(Speed::VeryHigh),
             gpioa.pa9.into_alternate_af1().set_speed(Speed::VeryHigh),
         );
@@ -69,7 +69,7 @@ const APP: () = {
             .modify(|_, w| w.oc2pe().set_bit().oc2m().pwm_mode1());
 
         // The reference manual is a bit ambiguous about when enabling this bit is really
-        // necessary, but since we MUST enable the preload for the output channels then we
+        // necessary, but since we MUST enable the pre-load for the output channels then we
         // might as well enable for the auto-reload too
         tim1.cr1.modify(|_, w| w.arpe().set_bit());
 
@@ -103,7 +103,7 @@ const APP: () = {
         tim1.cr1.write(|w| {
             w.cms()
                 .bits(0b00) // edge aligned mode
-                .dir() // counter used as upcounter
+                .dir() // counter used as up-counter
                 .clear_bit()
                 .opm() // one pulse mode
                 .clear_bit()
@@ -135,7 +135,7 @@ const APP: () = {
         tim1.sr.modify(|_, w| w.uif().clear());
 
         // pass on late resources
-        cx.schedule.pwmout(cx.start + PERIOD.cycles()).ok();
+        cx.schedule.pwm_out(cx.start + PERIOD.cycles()).ok();
         init::LateResources { TIM1: tim1 }
     }
 
@@ -148,9 +148,9 @@ const APP: () = {
         }
     }
 
-    #[task(resources = [TIM1], schedule = [pwmout])]
-    fn pwmout(cx: pwmout::Context) {
-        static mut INDEX: u8 = 0;
+    #[task(resources = [TIM1], schedule = [pwm_out])]
+    fn pwm_out(cx: pwm_out::Context) {
+        static mut INDEX: u16 = 0;
         static mut LEFT: u16 = 0;
         static mut RIGHT: u16 = 0;
 
@@ -159,8 +159,8 @@ const APP: () = {
         tim1.ccr1.write(|w| unsafe { w.ccr().bits(*LEFT) });
         tim1.ccr2.write(|w| unsafe { w.ccr().bits(*RIGHT) });
 
-        *INDEX = (*INDEX).wrapping_add(25);
-        cx.schedule.pwmout(cx.scheduled + PERIOD.cycles()).ok();
+        *INDEX = (*INDEX).wrapping_add(10_000);
+        cx.schedule.pwm_out(cx.scheduled + PERIOD.cycles()).ok();
 
         *LEFT = SINE_BUF[*INDEX as usize] as u16;
         *RIGHT = SINE_BUF[*INDEX as usize] as u16;

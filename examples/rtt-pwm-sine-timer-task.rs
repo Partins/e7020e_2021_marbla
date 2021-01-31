@@ -159,7 +159,7 @@ const APP: () = {
 
     #[task(binds = TIM2, resources = [TIM1, timer2])]
     fn tim2(cx: tim2::Context) {
-        static mut INDEX: u8 = 0;
+        static mut INDEX: u16 = 0;
         static mut LEFT: u16 = 0;
         static mut RIGHT: u16 = 0;
         cx.resources.timer2.clear_interrupt(Event::TimeOut);
@@ -169,7 +169,7 @@ const APP: () = {
         tim1.ccr1.write(|w| unsafe { w.ccr().bits(*LEFT) });
         tim1.ccr2.write(|w| unsafe { w.ccr().bits(*RIGHT) });
 
-        *INDEX = (*INDEX).wrapping_add(25);
+        *INDEX = (*INDEX).wrapping_add(10_000);
 
         *LEFT = SINE_BUF[*INDEX as usize] as u16;
         *RIGHT = SINE_BUF[*INDEX as usize] as u16;

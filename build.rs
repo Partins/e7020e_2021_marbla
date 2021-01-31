@@ -38,7 +38,7 @@ fn main() -> Result<()> {
     let dest_path = Path::new(&out_dir).join("sin_abs_const.rs");
     let mut f = File::create(&dest_path).unwrap();
 
-    const SINE_BUF_SIZE: usize = 256;
+    const SINE_BUF_SIZE: usize = 65536;
     write!(f, "const SINE_BUF_SIZE: usize = {};\n", SINE_BUF_SIZE)?;
     write!(f, "const SINE_BUF: [u8; SINE_BUF_SIZE] = [")?;
 

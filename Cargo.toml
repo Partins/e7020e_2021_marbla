@@ -16,14 +16,14 @@ usb-device = "0.2.7"
 # Panic handlers, comment all but one to generate doc!
 panic-halt = "0.2.0"
 
-# Uncomment for the panic example.
-#panic-itm = "0.4.2"
+# Uncomment for the itm panic examples.
+panic-itm = "0.4.2"
 
-# Uncomment for the rtt-timing example.
+# Uncomment for the rtt-timing examples.
 panic-rtt-target = { version = "0.1.1", features = ["cortex-m"] }
 
-# Uncomment for the panic example.
-#panic-semihosting = "0.5.6"
+# Uncomment for the semihosting examples.
+panic-semihosting = "0.5.6"
 
 # Tracing
 rtt-target = { version = "0.3.0", features = ["cortex-m"] }
@@ -42,7 +42,7 @@ features = ["rt", "stm32f411", "usb_fs"]
 # Enable to use the latest git version
 # gitgit = "https://github.com/stm32-rs/stm32f4xx-hal"
 # Enable to use your forked/cloned local repo 
-path = "../stm32f4xx-hal"
+# path = "../stm32f4xx-hal"
 
 
 # this lets you use `cargo fix`!

@@ -126,6 +126,18 @@ mod SC18IS602 {
         }
     }
 
+    pub enum Speed {
+        Speed_1843_kHz = 0b00,
+        Speed_461_kHz = 0b01,
+        Speed_115_kHz = 0b10,
+        Speed_58_kHz = 0b11,
+    }
+
+    pub enum Order {
+        MsbFirst = 0b0,
+        MsbLast = 0b1,
+    }
+
     enum GpioMode {
         QuasiBiDirectional = 0b00,
         PushPull = 0b01,
@@ -139,39 +151,76 @@ mod SC18IS602 {
         }
     }
 
-    use embedded_hal::{blocking::i2c, digital::v2::OutputPin};
+    use embedded_hal::{
+        blocking::{i2c, spi::Transfer},
+        digital::v2::OutputPin,
+        spi::Mode,
+    };
 
     enum Error {
         NotConfigured,
     }
-    // struct SH18IS602<PINS> {
+
     struct SH18IS602<I2C>
     where
-        I2C: i2c::Write,
+        I2C: i2c::Write + i2c::Read,
     {
         addr: u8,
         cs: bool,
         i2c: I2C,
     }
 
+    use Function::*;
     impl<I2C> SH18IS602<I2C>
     where
-        I2C: i2c::Write,
+        I2C: i2c::Write + i2c::Read,
     {
-        fn new(mut i2c: I2C, addr: u8, cs: bool) -> SH18IS602<I2C> {
-            if cs {
-                let addr = (0x50 + addr) >> 1;
-                // Configure SS0 as GPIO
-                i2c.write(addr, &[Function::GpioEnable.id(), 0x1]).ok();
+        fn new(
+            mut i2c: I2C,
+            addr: u8,
+            order: Order,
+            mode: Mode,
+            speed: Speed,
+            cs: bool,
+        ) -> SH18IS602<I2C> {
+            let addr = (0x50 + addr) >> 1;
+            // set configuration
+            let cfg = (order as u8) << 5
+                | (mode.polarity as u8) << 3
+                | (mode.phase as u8) << 2
+                | speed as u8;
 
-                // Configure SS0 as a PushPull Output
-                i2c.write(
-                    addr,
-                    &[Function::GpioConfigure.id(), GpioMode::PushPull.val()],
-                )
-                .ok();
+            let x = i2c.write(addr, &[SpiConfigure.id(), cfg]).ok();
+
+            cortex_m::asm::delay(100_000);
+
+            if cs {
+                // Configure SS0 as GPIO
+                i2c.write(addr, &[GpioEnable.id(), 0x1]).ok();
+
+                // Configure GPIO SS0 as a PushPull Output
+                i2c.write(addr, &[GpioConfigure.id(), GpioMode::PushPull.val()])
+                    .ok();
             }
             SH18IS602 { addr, cs, i2c }
+        }
+    }
+
+    impl<I2C> Transfer<u8> for SH18IS602<I2C>
+    where
+        I2C: i2c::Write + i2c::Read,
+    {
+        type Error = Error;
+        fn transfer<'w>(&mut self, words: &'w mut [u8]) -> Result<&'w [u8], Self::Error> {
+            // initiate a transfer on SS0
+            let mut buff = [0; 8];
+            buff[0] = 0x01; // SSO write
+            buff[1..].clone_from_slice(words);
+            // perform the transaction on words.len() + 1 bytes
+            // the actual SPI transfer should be words.len()
+            self.i2c.write(self.addr, &buff[0..words.len() + 1]).ok();
+            self.i2c.read(self.addr, words).ok();
+            Ok(words)
         }
     }
 
@@ -184,7 +233,7 @@ mod SC18IS602 {
 
     impl<I2C> OutputPin for SH18IS602<I2C>
     where
-        I2C: i2c::Write,
+        I2C: i2c::Write + i2c::Read,
     {
         type Error = Error;
 

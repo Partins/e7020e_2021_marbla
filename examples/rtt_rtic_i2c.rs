@@ -72,30 +72,62 @@ const APP: () = {
                            (0b00 << 0) /* 1843 kHz */;
         // (0b01 << 0) /* 461 kHz */;
 
-        let x = i2c.write(i2c_addr, &[i2c_command_conf, i2c_conf_reg]);
+        let x = i2c
+            .write(i2c_addr, &[i2c_command_conf, i2c_conf_reg])
+            .unwrap();
+
         rprintln!("configure {:?}", x);
-        cortex_m::asm::delay(100_000);
+        // cortex_m::asm::delay(10_000_000);
 
         // write to spi with CS0 (command 01..0f)
         let i2c_command_cs0 = 0x01; // bit 0 set
         let pmw_command_product_id = 0x00;
+        let pmw_command_product_version = 0x01;
 
-        let x = i2c.write(i2c_addr, &[i2c_command_cs0, pmw_command_product_id]);
+        let x = i2c.write(i2c_addr, &[i2c_command_cs0, pmw_command_product_id, 0]);
         rprintln!("request product_id {:?}", x);
-        cortex_m::asm::delay(10000);
-
-        // send an extra byte, to actually read (data can be 0)
-        let x = i2c.write(i2c_addr, &[i2c_command_cs0, 0x00u8]);
-        // read the buffer
-        cortex_m::asm::delay(10000);
+        //  cortex_m::asm::delay(10_000_000);
 
         // read the result
-        let mut buff = [0u8, 1];
+        let mut buff = [0, 0, 0, 0];
+        rprintln!("buff {:?}", buff);
+
         let x = i2c.read(i2c_addr, &mut buff);
         // read the buffer
-        cortex_m::asm::delay(10000);
+        cortex_m::asm::delay(100_000);
         rprintln!("data received {:?}", x);
         rprintln!("data received {:?}", buff);
+
+        let x = i2c.write(i2c_addr, &[i2c_command_cs0, pmw_command_product_version, 0]);
+        rprintln!("request product_version {:?}", x);
+        //  cortex_m::asm::delay(10_000_000);
+
+        // read the result
+        let mut buff = [0, 0, 0, 0];
+        rprintln!("buff {:?}", buff);
+
+        let x = i2c.read(i2c_addr, &mut buff);
+        // read the buffer
+        cortex_m::asm::delay(100_000);
+        rprintln!("data received {:?}", x);
+        rprintln!("data received {:?}", buff);
+
+        // // test of the abstractions
+
+        // use embedded_hal::spi::MODE_3;
+        // use SC18IS602::{Order, Speed, SH18IS602};
+        // let mut spi_emu =
+        //     SH18IS602::new(i2c, 0, Order::MsbFirst, MODE_3, Speed::Speed1843kHz, false);
+
+        // rprintln!("spi_emu initialized");
+
+        // let mut id_request = [0x00];
+        // spi_emu.transfer(&mut id_request).unwrap();
+        // rprintln!("id_request {:?}", id_request);
+
+        // let mut id_request = [0x00];
+        // spi_emu.transfer(&mut id_request).unwrap();
+        // rprintln!("response {:?}", id_request);
     }
 
     #[idle]
@@ -127,10 +159,10 @@ mod SC18IS602 {
     }
 
     pub enum Speed {
-        Speed_1843_kHz = 0b00,
-        Speed_461_kHz = 0b01,
-        Speed_115_kHz = 0b10,
-        Speed_58_kHz = 0b11,
+        Speed1843kHz = 0b00,
+        Speed461kHz = 0b01,
+        Speed115kHz = 0b10,
+        Speed58kHz = 0b11,
     }
 
     pub enum Order {
@@ -157,26 +189,30 @@ mod SC18IS602 {
         spi::Mode,
     };
 
-    enum Error {
+    #[derive(Copy, Clone, Debug)]
+    pub enum Error {
         NotConfigured,
     }
 
-    struct SH18IS602<I2C>
+    pub struct SH18IS602<I2C>
     where
         I2C: i2c::Write + i2c::Read,
     {
         addr: u8,
         cs: bool,
         i2c: I2C,
+        // a backing buffer for shadowing SPI transfers
         buff: [u8; 200],
     }
 
+    use rtt_target::rprintln;
     use Function::*;
+
     impl<I2C> SH18IS602<I2C>
     where
         I2C: i2c::Write + i2c::Read,
     {
-        fn new(
+        pub fn new(
             mut i2c: I2C,
             addr: u8,
             order: Order,
@@ -191,16 +227,22 @@ mod SC18IS602 {
                 | (mode.phase as u8) << 2
                 | speed as u8;
 
-            let x = i2c.write(addr, &[SpiConfigure.id(), cfg]).ok();
+            i2c.write(addr, &[SpiConfigure.id(), cfg])
+                .map_err(|_| panic!())
+                .ok();
 
             cortex_m::asm::delay(100_000);
 
             if cs {
+                rprintln!("GPIO SS0");
                 // Configure SS0 as GPIO
-                i2c.write(addr, &[GpioEnable.id(), 0x1]).ok();
+                i2c.write(addr, &[GpioEnable.id(), 0x1])
+                    .map_err(|_| panic!())
+                    .ok();
 
                 // Configure GPIO SS0 as a PushPull Output
                 i2c.write(addr, &[GpioConfigure.id(), GpioMode::PushPull.val()])
+                    .map_err(|_| panic!())
                     .ok();
             }
             SH18IS602 {
@@ -223,13 +265,23 @@ mod SC18IS602 {
         fn transfer<'w>(&mut self, words: &'w mut [u8]) -> Result<&'w [u8], Self::Error> {
             // initiate a transfer on SS0
             self.buff[0] = 0x01; // SSO write
-            self.buff[1..].clone_from_slice(words);
+            self.buff[1..words.len() + 1].clone_from_slice(words);
             // perform the transaction on words.len() + 1 bytes
             // the actual SPI transfer should be words.len()
+
+            rprintln!("write {:?}", &self.buff[0..words.len() + 1]);
+
             self.i2c
                 .write(self.addr, &self.buff[0..words.len() + 1])
+                .map_err(|_| panic!())
                 .ok();
-            self.i2c.read(self.addr, words).ok();
+            cortex_m::asm::delay(100_000);
+
+            self.i2c.read(self.addr, words).map_err(|_| panic!()).ok();
+            cortex_m::asm::delay(100_000);
+
+            rprintln!("read {:?}", words);
+
             Ok(words)
         }
     }
@@ -246,6 +298,7 @@ mod SC18IS602 {
             } else {
                 self.i2c
                     .write(self.addr, &[Function::GpioWrite.id(), 0x0])
+                    .map_err(|_| panic!())
                     .ok();
                 Ok(())
             }
@@ -257,6 +310,7 @@ mod SC18IS602 {
             } else {
                 self.i2c
                     .write(self.addr, &[Function::GpioWrite.id(), 0x1])
+                    .map_err(|_| panic!())
                     .ok();
                 Ok(())
             }

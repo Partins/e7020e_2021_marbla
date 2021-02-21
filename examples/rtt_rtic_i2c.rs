@@ -168,6 +168,7 @@ mod SC18IS602 {
         addr: u8,
         cs: bool,
         i2c: I2C,
+        buff: [u8; 200],
     }
 
     use Function::*;
@@ -202,7 +203,12 @@ mod SC18IS602 {
                 i2c.write(addr, &[GpioConfigure.id(), GpioMode::PushPull.val()])
                     .ok();
             }
-            SH18IS602 { addr, cs, i2c }
+            SH18IS602 {
+                addr,
+                cs,
+                i2c,
+                buff: [0; 200],
+            }
         }
     }
 
@@ -211,25 +217,22 @@ mod SC18IS602 {
         I2C: i2c::Write + i2c::Read,
     {
         type Error = Error;
+        // transfer limited to 200 bytes maximum
+        // will panic! if presented larger buffer
+        //
         fn transfer<'w>(&mut self, words: &'w mut [u8]) -> Result<&'w [u8], Self::Error> {
             // initiate a transfer on SS0
-            let mut buff = [0; 8];
-            buff[0] = 0x01; // SSO write
-            buff[1..].clone_from_slice(words);
+            self.buff[0] = 0x01; // SSO write
+            self.buff[1..].clone_from_slice(words);
             // perform the transaction on words.len() + 1 bytes
             // the actual SPI transfer should be words.len()
-            self.i2c.write(self.addr, &buff[0..words.len() + 1]).ok();
+            self.i2c
+                .write(self.addr, &self.buff[0..words.len() + 1])
+                .ok();
             self.i2c.read(self.addr, words).ok();
             Ok(words)
         }
     }
-
-    // fn set<I2C>(i2c: I2C, data: u8)
-    // where
-    //     I2C: i2c::Write,
-    // {
-    //     i2c.write(self.addr, &[Function::GpioWrite.id(), 0x0]).ok();
-    // }
 
     impl<I2C> OutputPin for SH18IS602<I2C>
     where

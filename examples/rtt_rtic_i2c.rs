@@ -106,3 +106,108 @@ const APP: () = {
         }
     }
 };
+
+// SC18IS602
+mod SC18IS602 {
+    enum Function {
+        SpiReadWrite = 0x00, // 0F..01, where lowest 4 bits are the CSs
+        SpiConfigure = 0xF0,
+        ClearInterrupt = 0xF1,
+        IdleMode = 0xF2,
+        GpioWrite = 0xF4,
+        GpioRead = 0xF5,
+        GpioEnable = 0xF6,
+        GpioConfigure = 0xF7,
+    }
+
+    impl Function {
+        fn id(self) -> u8 {
+            self as u8
+        }
+    }
+
+    enum GpioMode {
+        QuasiBiDirectional = 0b00,
+        PushPull = 0b01,
+        InputOnly = 0b10,
+        OpenDrain = 0b11,
+    }
+
+    impl GpioMode {
+        fn val(self) -> u8 {
+            self as u8
+        }
+    }
+
+    use embedded_hal::{blocking::i2c, digital::v2::OutputPin};
+
+    enum Error {
+        NotConfigured,
+    }
+    // struct SH18IS602<PINS> {
+    struct SH18IS602<I2C>
+    where
+        I2C: i2c::Write,
+    {
+        addr: u8,
+        cs: bool,
+        i2c: I2C,
+    }
+
+    impl<I2C> SH18IS602<I2C>
+    where
+        I2C: i2c::Write,
+    {
+        fn new(mut i2c: I2C, addr: u8, cs: bool) -> SH18IS602<I2C> {
+            if cs {
+                let addr = (0x50 + addr) >> 1;
+                // Configure SS0 as GPIO
+                i2c.write(addr, &[Function::GpioEnable.id(), 0x1]).ok();
+
+                // Configure SS0 as a PushPull Output
+                i2c.write(
+                    addr,
+                    &[Function::GpioConfigure.id(), GpioMode::PushPull.val()],
+                )
+                .ok();
+            }
+            SH18IS602 { addr, cs, i2c }
+        }
+    }
+
+    // fn set<I2C>(i2c: I2C, data: u8)
+    // where
+    //     I2C: i2c::Write,
+    // {
+    //     i2c.write(self.addr, &[Function::GpioWrite.id(), 0x0]).ok();
+    // }
+
+    impl<I2C> OutputPin for SH18IS602<I2C>
+    where
+        I2C: i2c::Write,
+    {
+        type Error = Error;
+
+        fn set_low(&mut self) -> Result<(), Self::Error> {
+            if !self.cs {
+                Err(Error::NotConfigured)
+            } else {
+                self.i2c
+                    .write(self.addr, &[Function::GpioWrite.id(), 0x0])
+                    .ok();
+                Ok(())
+            }
+        }
+
+        fn set_high(&mut self) -> Result<(), Self::Error> {
+            if !self.cs {
+                Err(Error::NotConfigured)
+            } else {
+                self.i2c
+                    .write(self.addr, &[Function::GpioWrite.id(), 0x1])
+                    .ok();
+                Ok(())
+            }
+        }
+    }
+}

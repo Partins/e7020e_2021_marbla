@@ -5,6 +5,7 @@
 #![no_main]
 #![no_std]
 
+use cortex_m::asm::delay;
 use panic_halt as _;
 use rtt_target::{rprintln, rtt_init_print};
 
@@ -67,18 +68,34 @@ const APP: () = {
         let i2c_command_conf = 0xF0;
 
         let i2c_conf_reg = (0b0 << 5) /* MSB First */ |
-                           (0b10 << 2) /* Mode 3 */ |
+                           (0b11 << 2) /* Mode 3 */ |
                            (0b00 << 0) /* 1843 kHz */;
+        // (0b01 << 0) /* 461 kHz */;
 
         let x = i2c.write(i2c_addr, &[i2c_command_conf, i2c_conf_reg]);
         rprintln!("configure {:?}", x);
+        cortex_m::asm::delay(100_000);
 
         // write to spi with CS0 (command 01..0f)
         let i2c_command_cs0 = 0x01; // bit 0 set
-        loop {
-            let x = i2c.write(i2c_addr, &[i2c_command_cs0, 0x00, 0xFF, 0xFF, 0xFF]);
-            rprintln!("data {:?}", x);
-        }
+        let pmw_command_product_id = 0x00;
+
+        let x = i2c.write(i2c_addr, &[i2c_command_cs0, pmw_command_product_id]);
+        rprintln!("request product_id {:?}", x);
+        cortex_m::asm::delay(10000);
+
+        // send an extra byte, to actually read (data can be 0)
+        let x = i2c.write(i2c_addr, &[i2c_command_cs0, 0x00u8]);
+        // read the buffer
+        cortex_m::asm::delay(10000);
+
+        // read the result
+        let mut buff = [0u8, 1];
+        let x = i2c.read(i2c_addr, &mut buff);
+        // read the buffer
+        cortex_m::asm::delay(10000);
+        rprintln!("data received {:?}", x);
+        rprintln!("data received {:?}", buff);
     }
 
     #[idle]

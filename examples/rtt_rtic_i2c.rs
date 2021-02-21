@@ -64,70 +64,70 @@ const APP: () = {
         //           10 - 115 kHz
         //           11 - 58 kHz
 
-        let i2c_addr = 0x50 >> 1;
-        let i2c_command_conf = 0xF0;
+        // let i2c_addr = 0x50 >> 1;
+        // let i2c_command_conf = 0xF0;
 
-        let i2c_conf_reg = (0b0 << 5) /* MSB First */ |
-                           (0b11 << 2) /* Mode 3 */ |
-                           (0b00 << 0) /* 1843 kHz */;
-        // (0b01 << 0) /* 461 kHz */;
+        // let i2c_conf_reg = (0b0 << 5) /* MSB First */ |
+        //                    (0b11 << 2) /* Mode 3 */ |
+        //                    (0b00 << 0) /* 1843 kHz */;
+        // // (0b01 << 0) /* 461 kHz */;
 
-        let x = i2c
-            .write(i2c_addr, &[i2c_command_conf, i2c_conf_reg])
-            .unwrap();
+        // let x = i2c
+        //     .write(i2c_addr, &[i2c_command_conf, i2c_conf_reg])
+        //     .unwrap();
 
-        rprintln!("configure {:?}", x);
-        // cortex_m::asm::delay(10_000_000);
+        // rprintln!("configure {:?}", x);
+        // // cortex_m::asm::delay(10_000_000);
 
-        // write to spi with CS0 (command 01..0f)
-        let i2c_command_cs0 = 0x01; // bit 0 set
-        let pmw_command_product_id = 0x00;
-        let pmw_command_product_version = 0x01;
+        // // write to spi with CS0 (command 01..0f)
+        // let i2c_command_cs0 = 0x01; // bit 0 set
+        // let pmw_command_product_id = 0x00;
+        // let pmw_command_product_version = 0x01;
 
-        let x = i2c.write(i2c_addr, &[i2c_command_cs0, pmw_command_product_id, 0]);
-        rprintln!("request product_id {:?}", x);
-        //  cortex_m::asm::delay(10_000_000);
+        // let x = i2c.write(i2c_addr, &[i2c_command_cs0, pmw_command_product_id, 0]);
+        // rprintln!("request product_id {:?}", x);
+        // //  cortex_m::asm::delay(10_000_000);
 
-        // read the result
-        let mut buff = [0, 0, 0, 0];
-        rprintln!("buff {:?}", buff);
+        // // read the result
+        // let mut buff = [0, 0, 0, 0];
+        // rprintln!("buff {:?}", buff);
 
-        let x = i2c.read(i2c_addr, &mut buff);
-        // read the buffer
-        cortex_m::asm::delay(100_000);
-        rprintln!("data received {:?}", x);
-        rprintln!("data received {:?}", buff);
+        // let x = i2c.read(i2c_addr, &mut buff);
+        // // read the buffer
+        // cortex_m::asm::delay(100_000);
+        // rprintln!("data received {:?}", x);
+        // rprintln!("data received {:?}", buff);
 
-        let x = i2c.write(i2c_addr, &[i2c_command_cs0, pmw_command_product_version, 0]);
-        rprintln!("request product_version {:?}", x);
-        //  cortex_m::asm::delay(10_000_000);
+        // let x = i2c.write(i2c_addr, &[i2c_command_cs0, pmw_command_product_version, 0]);
+        // rprintln!("request product_version {:?}", x);
+        // //  cortex_m::asm::delay(10_000_000);
 
-        // read the result
-        let mut buff = [0, 0, 0, 0];
-        rprintln!("buff {:?}", buff);
+        // // read the result
+        // let mut buff = [0, 0, 0, 0];
+        // rprintln!("buff {:?}", buff);
 
-        let x = i2c.read(i2c_addr, &mut buff);
-        // read the buffer
-        cortex_m::asm::delay(100_000);
-        rprintln!("data received {:?}", x);
-        rprintln!("data received {:?}", buff);
+        // let x = i2c.read(i2c_addr, &mut buff);
+        // // read the buffer
+        // cortex_m::asm::delay(100_000);
+        // rprintln!("data received {:?}", x);
+        // rprintln!("data received {:?}", buff);
 
         // // test of the abstractions
 
-        // use embedded_hal::spi::MODE_3;
-        // use SC18IS602::{Order, Speed, SH18IS602};
-        // let mut spi_emu =
-        //     SH18IS602::new(i2c, 0, Order::MsbFirst, MODE_3, Speed::Speed1843kHz, false);
+        use embedded_hal::spi::MODE_3;
+        use SC18IS602::{Order, Speed, SH18IS602};
+        let mut spi_emu =
+            SH18IS602::new(i2c, 0, Order::MsbFirst, MODE_3, Speed::Speed1843kHz, false);
 
-        // rprintln!("spi_emu initialized");
+        rprintln!("spi_emu initialized");
 
-        // let mut id_request = [0x00];
-        // spi_emu.transfer(&mut id_request).unwrap();
-        // rprintln!("id_request {:?}", id_request);
+        let mut id_request = [0x00, 00];
+        spi_emu.transfer(&mut id_request).unwrap();
+        rprintln!("id_request {:?}", id_request);
 
-        // let mut id_request = [0x00];
-        // spi_emu.transfer(&mut id_request).unwrap();
-        // rprintln!("response {:?}", id_request);
+        let mut v_request = [0x01, 00];
+        spi_emu.transfer(&mut v_request).unwrap();
+        rprintln!("version_request {:?}", v_request);
     }
 
     #[idle]

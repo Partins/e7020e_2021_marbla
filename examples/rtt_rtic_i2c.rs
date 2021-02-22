@@ -69,7 +69,7 @@ const APP: () = {
         spi_emu.set_low().ok();
         let mut req = [0x00];
         spi_emu.transfer(&mut req).unwrap();
-        rprintln!("id resp {:02x?}", req);
+        rprintln!("id request {:02x?}", req);
 
         cortex_m::asm::delay(1_000);
         // the read part
@@ -79,7 +79,20 @@ const APP: () = {
 
         spi_emu.set_high().ok();
 
-        cortex_m::asm::delay(100_000);
+        rprintln!("try split transaction");
+        // the write part
+        spi_emu.set_low().ok();
+        let mut req = [0x01];
+        spi_emu.transfer(&mut req).unwrap();
+        rprintln!("version request {:02x?}", req);
+
+        cortex_m::asm::delay(1_000);
+        // the read part
+        let mut req = [00];
+        spi_emu.transfer(&mut req).unwrap();
+        rprintln!("version resp {:02x?}", req);
+
+        spi_emu.set_high().ok();
     }
 
     #[idle]

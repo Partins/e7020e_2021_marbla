@@ -85,7 +85,11 @@ Using `vscode` just press F5 to launch and debug the program in the currently ac
 
 ## Nucleo Connections
 
+---
+
 Some of the examples need external connection to the Nucleo to work.
+
+---
 
 ### USB example
 
@@ -98,12 +102,25 @@ Some of the examples need external connection to the Nucleo to work.
 
 D+ used for re-enumeration. You don't need to connect the V+ from the USB cable, as the NUCLEO is self powered.
 
+---
+
 ### PWM example
 
 | Signal | Pin | Nucleo  |
 | ------ | --- | ------- |
 | PWM1   | PA8 | CN9 - 8 |
 | PWM2   | PA9 | CN5 - 1 |
+
+---
+
+### I2C example
+
+| Signal   | Pin | Nucleo |
+| -------- | --- | ------ |
+| I2C1_SDA | PB9 | CN10-5 |
+| I2C1_SCL | PB8 | CN10-3 |
+| +3.3v    |     | CN7-16 |
+| GND      |     | Gnd    |
 
 ## Debug interface
 

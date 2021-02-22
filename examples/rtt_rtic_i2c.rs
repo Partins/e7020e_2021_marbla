@@ -6,7 +6,8 @@
 #![no_std]
 
 use cortex_m::{asm::delay, delay};
-use panic_halt as _;
+// use panic_halt as _;
+use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 
 use stm32f4xx_hal::{
@@ -20,6 +21,11 @@ use stm32f4xx_hal::{
     stm32::I2C1,
 };
 
+use app::{
+    pmw3389e::{self, Register},
+    DwtDelay,
+};
+
 #[rtic::app(device = stm32f4xx_hal::stm32, peripherals = true)]
 const APP: () = {
     #[init]
@@ -27,18 +33,14 @@ const APP: () = {
         rtt_init_print!();
         rprintln!("init");
         let dp = cx.device;
+        let mut cp = cx.core;
 
-        // Set up the system clock, 48MHz
+        // Set up the system clock
         let rcc = dp.RCC.constrain();
-        // let clocks = rcc.cfgr.sysclk(48.mhz()).freeze();
         let clocks = rcc.cfgr.freeze();
-        // let clocks = rcc
-        //     .cfgr
-        //     .hclk(48.mhz())
-        //     .sysclk(48.mhz())
-        //     .pclk1(24.mhz())
-        //     .pclk2(24.mhz())
-        //     .freeze();
+
+        // Initialize (enable) the monotonic timer (CYCCNT)
+        cp.DCB.enable_trace();
 
         // Set up I2C.
         let gpiob = dp.GPIOB.split();
@@ -49,7 +51,7 @@ const APP: () = {
         rprintln!("i2c configured");
 
         use embedded_hal::spi::MODE_3;
-        use SC18IS602::{Function, Order, Speed, SH18IS602};
+        use SC18IS602::{Order, Speed, SH18IS602};
         let mut spi_emu =
             SH18IS602::new(i2c, 0, Order::MsbFirst, MODE_3, Speed::Speed1843kHz, true);
 
@@ -66,7 +68,7 @@ const APP: () = {
         // try split transaction
         rprintln!("try split transaction");
         // the write part
-        spi_emu.set_low().ok();
+        spi_emu.set_low().unwrap();
         let mut req = [0x00];
         spi_emu.transfer(&mut req).unwrap();
         rprintln!("id request {:02x?}", req);
@@ -77,11 +79,11 @@ const APP: () = {
         spi_emu.transfer(&mut req).unwrap();
         rprintln!("id resp {:02x?}", req);
 
-        spi_emu.set_high().ok();
+        spi_emu.set_high().unwrap();
 
         rprintln!("try split transaction");
         // the write part
-        spi_emu.set_low().ok();
+        spi_emu.set_low().unwrap();
         let mut req = [0x01];
         spi_emu.transfer(&mut req).unwrap();
         rprintln!("version request {:02x?}", req);
@@ -92,7 +94,12 @@ const APP: () = {
         spi_emu.transfer(&mut req).unwrap();
         rprintln!("version resp {:02x?}", req);
 
-        spi_emu.set_high().ok();
+        spi_emu.set_high().unwrap();
+
+        let delay = DwtDelay::new(&mut cp.DWT, clocks);
+        let pmw3389 = pmw3389e::Pmw3389e::new(spi_emu, delay).unwrap();
+
+        rprintln!("success");
     }
 
     #[idle]
@@ -251,6 +258,8 @@ mod SC18IS602 {
         }
     }
 
+    // impl<I2C> Default for SH18IS602<I2C> where I2C: i2c::Write + i2c::Read {}
+
     impl<I2C> Transfer<u8> for SH18IS602<I2C>
     where
         I2C: i2c::Write + i2c::Read,
@@ -272,18 +281,20 @@ mod SC18IS602 {
             // perform the transaction on words.len() + 1 bytes
             // the actual SPI transfer should be words.len()
 
-            rprintln!("transfer_write {:02x?}", &self.buff[0..words.len() + 1]);
+            // rprintln!("transfer_write {:02x?}", &self.buff[0..words.len() + 1]);
 
             self.i2c
                 .write(self.addr, &self.buff[0..words.len() + 1])
                 .map_err(|_| panic!())
                 .ok();
-            cortex_m::asm::delay(100_000);
+
+            // A short delay is needed
+            // For improved performance use write if result is not needed
+            cortex_m::asm::delay(1000);
 
             self.i2c.read(self.addr, words).map_err(|_| panic!()).ok();
-            cortex_m::asm::delay(100_000);
 
-            rprintln!("transfer_read {:02x?}", words);
+            // rprintln!("transfer_read {:02x?}", words);
 
             Ok(words)
         }
@@ -304,6 +315,7 @@ mod SC18IS602 {
                     .write(self.addr, &[Function::GpioWrite.id(), 0x0])
                     .map_err(|_| panic!())
                     .ok();
+                cortex_m::asm::delay(100_000);
                 Ok(())
             }
         }

@@ -1,6 +1,7 @@
 #![no_std]
 
 pub mod pmw3389;
+pub mod pmw3389e;
 
 use stm32f4xx_hal::{prelude::*, rcc::Clocks, stm32};
 

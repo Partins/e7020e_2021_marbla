@@ -5,7 +5,7 @@
 #![no_main]
 #![no_std]
 
-use cortex_m::asm::delay;
+use cortex_m::{asm::delay, delay};
 use panic_halt as _;
 use rtt_target::{rprintln, rtt_init_print};
 
@@ -44,90 +44,42 @@ const APP: () = {
         let gpiob = dp.GPIOB.split();
         let scl = gpiob.pb8.into_alternate_af4().set_open_drain();
         let sda = gpiob.pb9.into_alternate_af4().set_open_drain();
-        let mut i2c = I2c::i2c1(dp.I2C1, (scl, sda), 400.khz(), clocks);
+        let i2c = I2c::i2c1(dp.I2C1, (scl, sda), 400.khz(), clocks);
 
-        rprintln!("here");
-
-        // configure
-        // 7:6 -     reserved
-        // 5   ORDER logic 0, the MSB of the data word is transmitted first.
-        //           logic 1, the LSB of the data word is transmitted first.
-        // 4   -     reserved
-        // 3:3 M1:M0 Mode selection
-        //           00 - SPICLK LOW when idle; data clocked in on leading edge (CPOL = 0, CPHA = 0)
-        //           01 - SPICLK LOW when idle; data clocked in on trailing edge (CPOL = 0, CPHA = 1)
-        //           10 - SPICLK HIGH when idle; data clocked in on trailing edge (CPOL = 1, CPHA = 0)
-        //           11 - SPICLK HIGH when idle; data clocked in on leading edge (CPOL = 1, CPHA = 1)
-        // 1:0 F1:F0 SPI clock rate
-        //           00 - 1843 kHz
-        //           01 - 461 kHz
-        //           10 - 115 kHz
-        //           11 - 58 kHz
-
-        // let i2c_addr = 0x50 >> 1;
-        // let i2c_command_conf = 0xF0;
-
-        // let i2c_conf_reg = (0b0 << 5) /* MSB First */ |
-        //                    (0b11 << 2) /* Mode 3 */ |
-        //                    (0b00 << 0) /* 1843 kHz */;
-        // // (0b01 << 0) /* 461 kHz */;
-
-        // let x = i2c
-        //     .write(i2c_addr, &[i2c_command_conf, i2c_conf_reg])
-        //     .unwrap();
-
-        // rprintln!("configure {:?}", x);
-        // // cortex_m::asm::delay(10_000_000);
-
-        // // write to spi with CS0 (command 01..0f)
-        // let i2c_command_cs0 = 0x01; // bit 0 set
-        // let pmw_command_product_id = 0x00;
-        // let pmw_command_product_version = 0x01;
-
-        // let x = i2c.write(i2c_addr, &[i2c_command_cs0, pmw_command_product_id, 0]);
-        // rprintln!("request product_id {:?}", x);
-        // //  cortex_m::asm::delay(10_000_000);
-
-        // // read the result
-        // let mut buff = [0, 0, 0, 0];
-        // rprintln!("buff {:?}", buff);
-
-        // let x = i2c.read(i2c_addr, &mut buff);
-        // // read the buffer
-        // cortex_m::asm::delay(100_000);
-        // rprintln!("data received {:?}", x);
-        // rprintln!("data received {:?}", buff);
-
-        // let x = i2c.write(i2c_addr, &[i2c_command_cs0, pmw_command_product_version, 0]);
-        // rprintln!("request product_version {:?}", x);
-        // //  cortex_m::asm::delay(10_000_000);
-
-        // // read the result
-        // let mut buff = [0, 0, 0, 0];
-        // rprintln!("buff {:?}", buff);
-
-        // let x = i2c.read(i2c_addr, &mut buff);
-        // // read the buffer
-        // cortex_m::asm::delay(100_000);
-        // rprintln!("data received {:?}", x);
-        // rprintln!("data received {:?}", buff);
-
-        // // test of the abstractions
+        rprintln!("i2c configured");
 
         use embedded_hal::spi::MODE_3;
-        use SC18IS602::{Order, Speed, SH18IS602};
+        use SC18IS602::{Function, Order, Speed, SH18IS602};
         let mut spi_emu =
-            SH18IS602::new(i2c, 0, Order::MsbFirst, MODE_3, Speed::Speed1843kHz, false);
+            SH18IS602::new(i2c, 0, Order::MsbFirst, MODE_3, Speed::Speed1843kHz, true);
 
         rprintln!("spi_emu initialized");
 
-        let mut id_request = [0x00, 00];
-        spi_emu.transfer(&mut id_request).unwrap();
-        rprintln!("id_request {:?}", id_request);
+        // reset SPI transfer
+        spi_emu.set_low().ok();
+        cortex_m::asm::delay(1_000_000);
+        spi_emu.set_high().ok();
+        cortex_m::asm::delay(1_000_000);
 
-        let mut v_request = [0x01, 00];
-        spi_emu.transfer(&mut v_request).unwrap();
-        rprintln!("version_request {:?}", v_request);
+        rprintln!("set to gpio management");
+
+        // try split transaction
+        rprintln!("try split transaction");
+        // the write part
+        spi_emu.set_low().ok();
+        let mut req = [0x00];
+        spi_emu.transfer(&mut req).unwrap();
+        rprintln!("id resp {:02x?}", req);
+
+        cortex_m::asm::delay(1_000);
+        // the read part
+        let mut req = [00];
+        spi_emu.transfer(&mut req).unwrap();
+        rprintln!("id resp {:02x?}", req);
+
+        spi_emu.set_high().ok();
+
+        cortex_m::asm::delay(100_000);
     }
 
     #[idle]
@@ -141,7 +93,7 @@ const APP: () = {
 
 // SC18IS602
 mod SC18IS602 {
-    enum Function {
+    pub enum Function {
         SpiReadWrite = 0x00, // 0F..01, where lowest 4 bits are the CSs
         SpiConfigure = 0xF0,
         ClearInterrupt = 0xF1,
@@ -153,7 +105,7 @@ mod SC18IS602 {
     }
 
     impl Function {
-        fn id(self) -> u8 {
+        pub fn id(self) -> u8 {
             self as u8
         }
     }
@@ -199,7 +151,7 @@ mod SC18IS602 {
         I2C: i2c::Write + i2c::Read,
     {
         addr: u8,
-        cs: bool,
+        gpio: bool,
         i2c: I2C,
         // a backing buffer for shadowing SPI transfers
         buff: [u8; 200],
@@ -213,44 +165,76 @@ mod SC18IS602 {
         I2C: i2c::Write + i2c::Read,
     {
         pub fn new(
-            mut i2c: I2C,
+            i2c: I2C,
             addr: u8,
             order: Order,
             mode: Mode,
             speed: Speed,
-            cs: bool,
+            gpio: bool,
         ) -> SH18IS602<I2C> {
             let addr = (0x50 + addr) >> 1;
             // set configuration
+            let mut device = SH18IS602 {
+                addr,
+                gpio,
+                i2c,
+                buff: [0; 200],
+            };
+
+            // configure
+            // 7:6 -     reserved
+            // 5   ORDER logic 0, the MSB of the data word is transmitted first.
+            //           logic 1, the LSB of the data word is transmitted first.
+            // 4   -     reserved
+            // 3:3 M1:M0 Mode selection
+            //           00 - SPICLK LOW when idle; data clocked in on leading edge (CPOL = 0, CPHA = 0)
+            //           01 - SPICLK LOW when idle; data clocked in on trailing edge (CPOL = 0, CPHA = 1)
+            //           10 - SPICLK HIGH when idle; data clocked in on trailing edge (CPOL = 1, CPHA = 0)
+            //           11 - SPICLK HIGH when idle; data clocked in on leading edge (CPOL = 1, CPHA = 1)
+            // 1:0 F1:F0 SPI clock rate
+            //           00 - 1843 kHz
+            //           01 - 461 kHz
+            //           10 - 115 kHz
+            //           11 - 58 kHz
+
             let cfg = (order as u8) << 5
                 | (mode.polarity as u8) << 3
                 | (mode.phase as u8) << 2
                 | speed as u8;
 
-            i2c.write(addr, &[SpiConfigure.id(), cfg])
-                .map_err(|_| panic!())
-                .ok();
+            device.i2c.write(addr, &mut [SpiConfigure.id(), cfg]).ok();
 
-            cortex_m::asm::delay(100_000);
-
-            if cs {
-                rprintln!("GPIO SS0");
-                // Configure SS0 as GPIO
-                i2c.write(addr, &[GpioEnable.id(), 0x1])
-                    .map_err(|_| panic!())
-                    .ok();
-
-                // Configure GPIO SS0 as a PushPull Output
-                i2c.write(addr, &[GpioConfigure.id(), GpioMode::PushPull.val()])
-                    .map_err(|_| panic!())
-                    .ok();
+            if gpio {
+                device.set_ss0_gpio();
+            } else {
+                device.set_ss0_hw();
             }
-            SH18IS602 {
-                addr,
-                cs,
-                i2c,
-                buff: [0; 200],
-            }
+
+            device
+        }
+
+        pub fn set_ss0_gpio(&mut self) {
+            rprintln!("SSO as GPIO");
+            // Configure SS0 as GPIO
+            let buff = [GpioEnable.id(), 0x1];
+            rprintln!("GPIO SS0 Enable {:02x?}", buff);
+            self.i2c.write(self.addr, &mut [GpioEnable.id(), 0x1]).ok();
+
+            // Configure GPIO SS0 as a PushPull Output
+            let buff = [GpioConfigure.id(), GpioMode::PushPull.val()];
+            rprintln!("GPIO SS0 PushPull {:02x?}", buff);
+            self.i2c.write(self.addr, &buff).ok();
+
+            // Set the SS0 to high out of transaction (idle)
+            self.gpio = true;
+            self.set_high().unwrap();
+        }
+
+        pub fn set_ss0_hw(&mut self) {
+            // Configure SS0 as managed by HW
+            rprintln!("GPIO SS0 managed by HW");
+            self.i2c.write(self.addr, &mut [GpioEnable.id(), 0x0]).ok();
+            self.gpio = false;
         }
     }
 
@@ -259,17 +243,23 @@ mod SC18IS602 {
         I2C: i2c::Write + i2c::Read,
     {
         type Error = Error;
-        // transfer limited to 200 bytes maximum
-        // will panic! if presented larger buffer
-        //
+        // Notice: Transfer limited to 200 bytes maximum
+        // panic!  if presented larger buffer
         fn transfer<'w>(&mut self, words: &'w mut [u8]) -> Result<&'w [u8], Self::Error> {
             // initiate a transfer on SS0
-            self.buff[0] = 0x01; // SSO write
+            self.buff[0] = if self.gpio {
+                // Due to REASONS UNKNOWN, the SPI is disabled if
+                // the corresponding SSx is configured as gpio
+                0x02
+            } else {
+                0x01
+            };
+            self.buff[0] = 0x02; // SSO write
             self.buff[1..words.len() + 1].clone_from_slice(words);
             // perform the transaction on words.len() + 1 bytes
             // the actual SPI transfer should be words.len()
 
-            rprintln!("write {:?}", &self.buff[0..words.len() + 1]);
+            rprintln!("transfer_write {:02x?}", &self.buff[0..words.len() + 1]);
 
             self.i2c
                 .write(self.addr, &self.buff[0..words.len() + 1])
@@ -280,7 +270,7 @@ mod SC18IS602 {
             self.i2c.read(self.addr, words).map_err(|_| panic!()).ok();
             cortex_m::asm::delay(100_000);
 
-            rprintln!("read {:?}", words);
+            rprintln!("transfer_read {:02x?}", words);
 
             Ok(words)
         }
@@ -293,9 +283,10 @@ mod SC18IS602 {
         type Error = Error;
 
         fn set_low(&mut self) -> Result<(), Self::Error> {
-            if !self.cs {
+            if !self.gpio {
                 Err(Error::NotConfigured)
             } else {
+                rprintln!("set low");
                 self.i2c
                     .write(self.addr, &[Function::GpioWrite.id(), 0x0])
                     .map_err(|_| panic!())
@@ -305,9 +296,10 @@ mod SC18IS602 {
         }
 
         fn set_high(&mut self) -> Result<(), Self::Error> {
-            if !self.cs {
+            if !self.gpio {
                 Err(Error::NotConfigured)
             } else {
+                rprintln!("set_high");
                 self.i2c
                     .write(self.addr, &[Function::GpioWrite.id(), 0x1])
                     .map_err(|_| panic!())

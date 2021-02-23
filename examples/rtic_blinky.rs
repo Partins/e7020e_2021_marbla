@@ -1,3 +1,12 @@
+// run with gdb, either from terminal or in vscode
+//
+// from terminal:
+// start openocd in separate terminal
+// > openocd -f openocd.cfg
+//
+// start gdb
+// > arm-none-eabi-gdb target/thumbv7em-none-eabihf/debug/examples/rtic_blinky -x openocd.gdb
+
 #![deny(unsafe_code)]
 #![deny(warnings)]
 #![no_main]
@@ -5,7 +14,7 @@
 
 use cortex_m::peripheral::DWT;
 use cortex_m_semihosting::hprintln;
-use panic_rtt_target as _;
+use panic_semihosting as _;
 use rtic::cyccnt::{Instant, U32Ext as _};
 use stm32f4xx_hal::stm32;
 

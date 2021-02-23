@@ -1,5 +1,9 @@
 # Changelog
 
+## 2021-02-23
+
+- examples/rtic_blinky.rs, added instructions to terminal based debugging
+  
 ## 2021-02-22
 
 - memory.x, reduced flash size to 128k to match light-weight target

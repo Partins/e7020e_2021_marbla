@@ -65,11 +65,18 @@ const APP: () = {
 //
 //    Paste the backtrace:
 //
-//    ** your answer here
+//    #0  lib::__bkpt () at asm/lib.rs:49
+//    #1  0x0800104e in cortex_m::asm::bkpt () at /home/martin/.cargo/registry/src/github.com-1ecc6299db9ec823/cortex-m-0.7.1/src/asm.rs:15
+//    #2  rust_begin_unwind (info=0x2000fed8) at /home/martin/.cargo/registry/src/github.com-1ecc6299db9ec823/panic-semihosting-0.5.6/src/lib.rs:92
+//    #3  0x0800039a in core::panicking::panic_fmt () at /rustc/cb75ad5db02783e8b0222fee363c5f63f7e2cf5b//library/core/src/panicking.rs:92
+//    #4  0x08000374 in core::panicking::panic () at /rustc/cb75ad5db02783e8b0222fee363c5f63f7e2cf5b//library/core/src/panicking.rs:50
+//    #5  0x08000ebe in rtic_bare1::init (_cx=...) at /home/martin/Documents/e7020e_2021_marbla/examples/rtic_bare1.rs:24
+//    #6  0x08000f08 in rtic_bare1::APP::main () at /home/martin/Documents/e7020e_2021_marbla/examples/rtic_bare1.rs:15
+
 //
 //    Explain in your own words the chain of calls.
 //
-//    ** your answer here
+//    It shows the stack of called function all the way down to the first called function main(). With this we're able to backtrace and see where the program panicked. 
 //
 //    Commit your answer (bare1_2)
 //

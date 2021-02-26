@@ -4,31 +4,31 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "cargo",
-            "command": "build --example ${fileBasenameNoExtension}",
+            "label": "cargo build --example",
+            "command": "cargo",
+            "args": [
+                "build",
+                "--example",
+                "${fileBasenameNoExtension}"
+            ],
             "problemMatcher": [
                 "$rustc"
             ],
             "group": "build",
-            "label": "cargo build --example"
         },
         {
-            "type": "cargo",
-            "command": "build --example ${fileBasenameNoExtension} --release",
+            "label": "cargo build --example --release",
+            "command": "cargo",
+            "args": [
+                "build",
+                "--example",
+                "${fileBasenameNoExtension}",
+                "--release"
+            ],
             "problemMatcher": [
                 "$rustc"
             ],
             "group": "build",
-            "label": "cargo build --example --release"
         },
-        {
-            "type": "cargo",
-            "command": "build --example ${fileBasenameNoExtension} --release --features nightly",
-            "problemMatcher": [
-                "$rustc"
-            ],
-            "group": "build",
-            "label": "cargo build --example --release --nightly"
-        }
     ]
 }

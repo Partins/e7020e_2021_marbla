@@ -1,15 +1,12 @@
 /// PWM3389 gaming mouse sensor driver
-use embedded_hal::spi::MODE_3;
-use rtic::cyccnt::{Instant, U32Ext as _};
-use stm32f4xx_hal::{dwt::Dwt, gpio::Speed, prelude::*, rcc::Clocks, spi::Spi, stm32};
-
 use crate::DwtDelay;
-
-use embedded_hal::blocking::spi::{Transfer, Write};
-use embedded_hal::digital::v2::OutputPin;
 use stm32f4xx_hal::prelude::*;
 
-use rtt_target::{rprint, rprintln};
+use embedded_hal::blocking::spi::Transfer;
+use embedded_hal::digital::v2::OutputPin;
+// use stm32f4xx_hal::prelude::*;
+
+use rtt_target::rprintln;
 
 // struct SPI_EMU<SPI, E>
 // where

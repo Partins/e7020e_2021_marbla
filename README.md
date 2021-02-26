@@ -71,7 +71,17 @@ Using `vscode` just press F5 to launch and debug the program in the currently ac
 - `rtic_hello.rs`, this example uses semihosting to print the output terminal. Open the `OUTPUT` pane, and select `Adapter Output` (which is the openocd console).
 - `itm_rtic_hello.rs`, this examples uses the ITM trace to print to an output trace channel. Open the `OUTPUT` pane, and select `SWO:ITM[port:0, type:console]`.
 - `rtic_panic.rs`, this example shows how to trace panic messages (in this case over semihosting).  Open the `OUTPUT` pane, and select `Adapter Output` (which is the openocd console).
-- `rtic_crash.rs`, this example shows how to trace a HardFault (an error raised by the ARM processor). 
+- `rtic_crash.rs`, this example shows how to trace a HardFault (an error raised by the ARM processor).
+  
+---
+
+### Exercises
+
+Bare metal programming:
+
+- `bare1.rs`, in this exercise you learn about debugging, inspecting the generated assembly code, inline assembly, and about checked vs. unchecked (wrapping) arithmetics. Provides essential skills and understanding of low level (bare metal) programming.
+
+---
 
 ### Console based debug and trace
 

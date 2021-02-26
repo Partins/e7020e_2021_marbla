@@ -6,7 +6,7 @@ name = "app"
 version = "0.1.0"
 
 [dependencies]
-cortex-m = "0.7.1"
+cortex-m = { version = "0.7.1", features = ["linker-plugin-lto"] }
 cortex-m-rt = "0.6.13"
 cortex-m-semihosting = "0.3.7"
 cortex-m-rtic = "0.5.5"
@@ -43,7 +43,6 @@ features = ["rt", "stm32f411", "usb_fs"]
 # gitgit = "https://github.com/stm32-rs/stm32f4xx-hal"
 # Enable to use your forked/cloned local repo 
 # path = "../stm32f4xx-hal"
-
 
 # this lets you use `cargo fix`!
 [[bin]]

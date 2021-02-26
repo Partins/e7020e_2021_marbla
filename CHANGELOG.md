@@ -1,5 +1,9 @@
 # Changelog
 
+## 2021-02-26
+
+- examples/bare1.rs, bare metal 101!
+  
 ## 2021-02-23
 
 - examples/rtic_blinky.rs, added instructions to terminal based debugging

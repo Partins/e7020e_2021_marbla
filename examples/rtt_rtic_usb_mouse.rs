@@ -1,14 +1,15 @@
+// cargo run --example rtt_rtic_usb_mouse --release
+//
+// Notice, release build required
+
 #![no_std]
 #![no_main]
 
-// extern crate panic_semihosting;
-// use panic_rtt_target as _;
 use panic_halt as _;
 
 use cortex_m::{asm::delay, peripheral::DWT};
 use embedded_hal::digital::v2::OutputPin;
 use rtic::cyccnt::{Instant, U32Ext as _};
-// use stm32f4xx_hal::usb::{Peripheral, UsbBus, UsbBusType};
 use stm32f4xx_hal::{
     gpio,
     otg_fs::{UsbBus, UsbBusType, USB},
@@ -270,6 +271,14 @@ const APP: () = {
 
             usb_dev,
             hid,
+        }
+    }
+
+    #[idle]
+    fn idle(_cx: idle::Context) -> ! {
+        // rprintln!("idle");
+        loop {
+            continue;
         }
     }
 

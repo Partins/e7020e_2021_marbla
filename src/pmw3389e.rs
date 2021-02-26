@@ -1,12 +1,19 @@
 /// PWM3389 gaming mouse sensor driver
+use crate::DwtDelay;
 use stm32f4xx_hal::prelude::*;
 
-use crate::DwtDelay;
-
-use embedded_hal::blocking::spi::{Transfer, Write};
+use embedded_hal::blocking::spi::Transfer;
 use embedded_hal::digital::v2::OutputPin;
+// use stm32f4xx_hal::prelude::*;
 
-use rtt_target::{rprint, rprintln};
+use rtt_target::rprintln;
+
+// struct SPI_EMU<SPI, E>
+// where
+//     SPI: Transfer<u8, Error = E> + OutputPin,
+// {
+//     spi_emu: SPI,
+// }
 
 #[allow(dead_code)]
 #[derive(Clone, Copy)]
@@ -75,28 +82,29 @@ impl Register {
     }
 }
 
-pub struct Pmw3389<SPI, CS> {
+pub struct Pmw3389e<SPI, E>
+where
+    SPI: Transfer<u8, Error = E> + OutputPin,
+{
     spi: SPI,
-    cs: CS,
     delay: DwtDelay,
 }
 
-impl<SPI, CS, E> Pmw3389<SPI, CS>
+impl<SPI, E> Pmw3389e<SPI, E>
 where
-    SPI: Transfer<u8, Error = E> + Write<u8, Error = E>,
-    CS: OutputPin,
+    SPI: Transfer<u8, Error = E> + OutputPin,
 {
     fn com_begin(&mut self) {
-        self.cs.set_low().ok();
+        self.spi.set_low().ok();
     }
 
     fn com_end(&mut self) {
-        self.cs.set_high().ok();
+        self.spi.set_high().ok();
     }
 
     /// Creates a new driver from a SPI peripheral and a NCS pin
-    pub fn new(spi: SPI, cs: CS, delay: DwtDelay) -> Result<Self, E> {
-        let mut pmw3389 = Pmw3389 { spi, cs, delay };
+    pub fn new(spi: SPI, delay: DwtDelay) -> Result<Self, E> {
+        let mut pmw3389 = Pmw3389e { spi, delay };
 
         rprintln!("pmw3389 - new");
 
@@ -115,23 +123,6 @@ where
         rprintln!("srom_id {}, 0x{:x}", srom_id, srom_id);
 
         rprintln!("reset");
-
-        // shutdown
-
-        // adns_write_reg(Shutdown, 0xb6); // Shutdown first
-        // delay(300);
-
-        // adns_com_begin(); // drop and raise ncs to reset spi port
-        // delayMicroseconds(40);
-        // adns_com_end();
-        // delayMicroseconds(40);
-
-        // pmw3389.write_register(Register::Shutdown, 0xb6)?;
-        // pmw3389.delay.delay_ms(300);
-        // pmw3389.com_begin();
-        // pmw3389.delay.delay_us(40);
-        // pmw3389.com_end();
-        // pmw3389.delay.delay_us(40);
 
         // force reset
         pmw3389.write_register(Register::PowerUpReset, 0x5a)?;
@@ -155,48 +146,48 @@ where
 
         pmw3389.upload_firmware()?;
 
-        pmw3389.delay.delay_ms(1000);
+        // pmw3389.delay.delay_ms(1000);
 
-        rprintln!("Optical Chip Initialized");
+        // rprintln!("Optical Chip Initialized");
 
-        // read product id
-        let id = pmw3389.product_id()?;
-        rprintln!("product_id 0x{:x}", id);
+        // // read product id
+        // let id = pmw3389.product_id()?;
+        // rprintln!("product_id 0x{:x}", id);
 
-        let srom_id = pmw3389.read_register(Register::SROMId)?;
-        rprintln!("srom_id {}, 0x{:x}", srom_id, srom_id);
+        // let srom_id = pmw3389.read_register(Register::SROMId)?;
+        // rprintln!("srom_id {}, 0x{:x}", srom_id, srom_id);
 
-        // loop {
-        //     pmw3389.write_register(Register::Motion, 0x01)?;
+        // // loop {
+        // //     pmw3389.write_register(Register::Motion, 0x01)?;
 
-        //     let motion = pmw3389.read_register(Register::Motion)?;
-        //     let xl = pmw3389.read_register(Register::DeltaXL)?;
-        //     let xh = pmw3389.read_register(Register::DeltaXH)?;
-        //     let yl = pmw3389.read_register(Register::DeltaYL)?;
-        //     let yh = pmw3389.read_register(Register::DeltaYH)?;
+        // //     let motion = pmw3389.read_register(Register::Motion)?;
+        // //     let xl = pmw3389.read_register(Register::DeltaXL)?;
+        // //     let xh = pmw3389.read_register(Register::DeltaXH)?;
+        // //     let yl = pmw3389.read_register(Register::DeltaYL)?;
+        // //     let yh = pmw3389.read_register(Register::DeltaYH)?;
 
-        //     let x = (xl as u16 + (xh as u16) << 8) as i16;
-        //     let y = (yl as u16 + (yh as u16) << 8) as i16;
+        // //     let x = (xl as u16 + (xh as u16) << 8) as i16;
+        // //     let y = (yl as u16 + (yh as u16) << 8) as i16;
 
-        //     let surface = motion & 0x08;
-        //     let motion_detect = motion & 0x80;
+        // //     let surface = motion & 0x08;
+        // //     let motion_detect = motion & 0x80;
 
-        //     rprintln!(
-        //         "motion {}, surface {}, (x, y) {:?}",
-        //         motion_detect,
-        //         surface,
-        //         (x, y),
-        //     );
-        //     pmw3389.delay.delay_ms(200);
-        // }
+        // //     rprintln!(
+        // //         "motion {}, surface {}, (x, y) {:?}",
+        // //         motion_detect,
+        // //         surface,
+        // //         (x, y),
+        // //     );
+        // //     pmw3389.delay.delay_ms(200);
+        // // }
 
-        // self.spi.transfer(&mut [Register::MotionBurst.addr()])?;
-        // self.delay.delay_ms(35); // waits for tSRAD
+        // // self.spi.transfer(&mut [Register::MotionBurst.addr()])?;
+        // // self.delay.delay_ms(35); // waits for tSRAD
 
-        // loop {
-        //     pmw3389.read_status(itm)?;
-        //     pmw3389.delay.delay_ms(10);
-        // }
+        // // loop {
+        // //     pmw3389.read_status(itm)?;
+        // //     pmw3389.delay.delay_ms(10);
+        // // }
 
         Ok(pmw3389)
     }
@@ -253,71 +244,71 @@ where
         self.read_register(Register::ProductId)
     }
 
-    /// Read status
-    pub fn read_status(&mut self) -> Result<(), E> {
-        self.com_begin();
+    // /// Read status
+    // pub fn read_status(&mut self) -> Result<(), E> {
+    //     self.com_begin();
 
-        // self.write_register(Register::Motion, 0x01)?;
+    //     // self.write_register(Register::Motion, 0x01)?;
 
-        self.spi.transfer(&mut [Register::MotionBurst.addr()])?;
-        // self.write_register(Register::MotionBurst, 0x00);
+    //     self.spi.transfer(&mut [Register::MotionBurst.addr()])?;
+    //     // self.write_register(Register::MotionBurst, 0x00);
 
-        self.delay.delay_us(35); // waits for tSRAD
+    //     self.delay.delay_us(35); // waits for tSRAD
 
-        // read burst buffer
-        let mut buf = [0u8; 12];
-        self.spi.transfer(&mut buf)?;
+    //     // read burst buffer
+    //     let mut buf = [0u8; 12];
+    //     self.spi.transfer(&mut buf)?;
 
-        // tSCLK-NCS for read operation is 120ns
-        self.delay.delay_us(120);
+    //     // tSCLK-NCS for read operation is 120ns
+    //     self.delay.delay_us(120);
 
-        self.com_end();
+    //     self.com_end();
 
-        rprint!("burst [");
-        for j in buf.iter() {
-            rprint!("0x{:02x}, ", j);
-        }
-        rprintln!("]");
+    //     rprint!("burst [");
+    //     for j in buf.iter() {
+    //         rprint!("0x{:02x}, ", j);
+    //     }
+    //     rprintln!("]");
 
-        //     SPI.endTransaction(); // Per:Not sure what it does
-        //     /*
-        //     BYTE[00] = Motion    = if the 7th bit is 1, a motion is detected.
-        //            ==> 7 bit: MOT (1 when motion is detected)
-        //            ==> 3 bit: 0 when chip is on surface / 1 when off surface
-        //            ] = Observation
-        //     BYTE[02] = Delta_X_L = dx (LSB)
-        //     BYTE[03] = Delta_X_H = dx (MSB)
-        //     BYTE[04] = Delta_Y_L = dy (LSB)
-        //     BYTE[05] = Delta_Y_H = dy (MSB)
-        //     BYTE[06] = SQUAL     = Surface Quality register, max 0x80
-        //                          - Number of features on the surface = SQUAL * 8
-        //     BYTE[07] = Raw_Data_Sum   = It reports the upper byte of an 18‐bit counter which sums all 1296 raw data in the current frame;
-        //                                * Avg value = Raw_Data_Sum * 1024 / 1296
-        //     BYTE[08] = Maximum_Raw_Data  = Max raw data value in current frame, max=127
-        //     BYTE[09] = Minimum_Raw_Data  = Min raw data value in current frame, max=127
-        //     BYTE[10] = Shutter_Upper     = Shutter LSB
-        //     BYTE[11] = Shutter_Lower     = Shutter MSB, Shutter = shutter is adjusted to keep the average raw data values within normal operating ranges
-        //     */
-        //     int motion = (burstBuffer[0] & 0x80) > 0;
-        let motion = buf[0] & 0x80;
-        let surface = buf[0] & 0x08;
-        // 0 if on surface / 1 if off surface
+    //     //     SPI.endTransaction(); // Per:Not sure what it does
+    //     //     /*
+    //     //     BYTE[00] = Motion    = if the 7th bit is 1, a motion is detected.
+    //     //            ==> 7 bit: MOT (1 when motion is detected)
+    //     //            ==> 3 bit: 0 when chip is on surface / 1 when off surface
+    //     //            ] = Observation
+    //     //     BYTE[02] = Delta_X_L = dx (LSB)
+    //     //     BYTE[03] = Delta_X_H = dx (MSB)
+    //     //     BYTE[04] = Delta_Y_L = dy (LSB)
+    //     //     BYTE[05] = Delta_Y_H = dy (MSB)
+    //     //     BYTE[06] = SQUAL     = Surface Quality register, max 0x80
+    //     //                          - Number of features on the surface = SQUAL * 8
+    //     //     BYTE[07] = Raw_Data_Sum   = It reports the upper byte of an 18‐bit counter which sums all 1296 raw data in the current frame;
+    //     //                                * Avg value = Raw_Data_Sum * 1024 / 1296
+    //     //     BYTE[08] = Maximum_Raw_Data  = Max raw data value in current frame, max=127
+    //     //     BYTE[09] = Minimum_Raw_Data  = Min raw data value in current frame, max=127
+    //     //     BYTE[10] = Shutter_Upper     = Shutter LSB
+    //     //     BYTE[11] = Shutter_Lower     = Shutter MSB, Shutter = shutter is adjusted to keep the average raw data values within normal operating ranges
+    //     //     */
+    //     //     int motion = (burstBuffer[0] & 0x80) > 0;
+    //     let motion = buf[0] & 0x80;
+    //     let surface = buf[0] & 0x08;
+    //     // 0 if on surface / 1 if off surface
 
-        let x = buf[2] as u16 + (buf[3] as u16) << 8;
-        let y = buf[4] as u16 + (buf[5] as u16) << 8;
+    //     let x = buf[2] as u16 + (buf[3] as u16) << 8;
+    //     let y = buf[4] as u16 + (buf[5] as u16) << 8;
 
-        let squal = buf[6];
+    //     let squal = buf[6];
 
-        rprintln!(
-            "motion {}, surface {}, (x, y) {:?}, squal {}",
-            motion,
-            surface,
-            (x, y),
-            squal
-        );
+    //     rprintln!(
+    //         "motion {}, surface {}, (x, y) {:?}, squal {}",
+    //         motion,
+    //         surface,
+    //         (x, y),
+    //         squal
+    //     );
 
-        Ok(())
-    }
+    //     Ok(())
+    //}
 
     // Upload the firmware
     pub fn upload_firmware(&mut self) -> Result<(), E> {

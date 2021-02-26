@@ -71,7 +71,17 @@ Using `vscode` just press F5 to launch and debug the program in the currently ac
 - `rtic_hello.rs`, this example uses semihosting to print the output terminal. Open the `OUTPUT` pane, and select `Adapter Output` (which is the openocd console).
 - `itm_rtic_hello.rs`, this examples uses the ITM trace to print to an output trace channel. Open the `OUTPUT` pane, and select `SWO:ITM[port:0, type:console]`.
 - `rtic_panic.rs`, this example shows how to trace panic messages (in this case over semihosting).  Open the `OUTPUT` pane, and select `Adapter Output` (which is the openocd console).
-- `rtic_crash.rs`, this example shows how to trace a HardFault (an error raised by the ARM processor). 
+- `rtic_crash.rs`, this example shows how to trace a HardFault (an error raised by the ARM processor).
+  
+---
+
+### Exercises
+
+Bare metal programming:
+
+- `bare1.rs`, in this exercise you learn about debugging, inspecting the generated assembly code, inline assembly, and about checked vs. unchecked (wrapping) arithmetics. Provides essential skills and understanding of low level (bare metal) programming.
+
+---
 
 ### Console based debug and trace
 
@@ -85,7 +95,11 @@ Using `vscode` just press F5 to launch and debug the program in the currently ac
 
 ## Nucleo Connections
 
+---
+
 Some of the examples need external connection to the Nucleo to work.
+
+---
 
 ### USB example
 
@@ -98,12 +112,25 @@ Some of the examples need external connection to the Nucleo to work.
 
 D+ used for re-enumeration. You don't need to connect the V+ from the USB cable, as the NUCLEO is self powered.
 
+---
+
 ### PWM example
 
 | Signal | Pin | Nucleo  |
 | ------ | --- | ------- |
 | PWM1   | PA8 | CN9 - 8 |
 | PWM2   | PA9 | CN5 - 1 |
+
+---
+
+### I2C example
+
+| Signal   | Pin | Nucleo |
+| -------- | --- | ------ |
+| I2C1_SDA | PB9 | CN10-5 |
+| I2C1_SCL | PB8 | CN10-3 |
+| +3.3v    |     | CN7-16 |
+| GND      |     | Gnd    |
 
 ## Debug interface
 

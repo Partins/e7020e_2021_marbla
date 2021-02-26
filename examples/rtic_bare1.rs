@@ -222,7 +222,7 @@ const APP: () = {
 //
 //    ** your answer here **
 //
-//    Commit your answer (bare1_3)
+//    Commit your answer (bare1_4)
 //
 // 5. Now we can remove the break point (click the `Remove All Breakpoints`),
 //    and instead uncomment the two breakpoint instructions (on lines 23 and 25).

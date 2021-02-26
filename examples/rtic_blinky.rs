@@ -2,6 +2,7 @@
 #![deny(warnings)]
 #![no_main]
 #![no_std]
+#![idle]
 
 use cortex_m::peripheral::DWT;
 use cortex_m_semihosting::hprintln;

@@ -20,9 +20,9 @@ const APP: () = {
     fn init(_cx: init::Context) {
         let mut x = core::u32::MAX - 1;
         loop {
-            // cortex_m::asm::bkpt();
-            x += 1;
-            // cortex_m::asm::bkpt();
+            cortex_m::asm::bkpt();
+            x = x.wrapping_add(1);
+            cortex_m::asm::bkpt();
 
             // prevent optimization by read-volatile (unsafe)
             unsafe {
@@ -282,7 +282,7 @@ const APP: () = {
 //
 //    Do you see any way this code may end up in a panic?
 //
-//    ** your answer here **
+//    It just adds, no checks (such as the BCS instruction) is run
 //
 //    So clearly, the "semantics" (meaning) of the program has changed.
 //    This is on purpose, Rust adopts "unchecked" (wrapping) additions (and subtractions)
@@ -297,16 +297,26 @@ const APP: () = {
 //
 //    Paste the generated assembly:
 //
-//    ** your answer here **
+// Dump of assembler code for function rtic_bare1::init:
+//    0x08000e98 <+20>:	bl	0x8000fa6 <lib::__bkpt>
+// => 0x08000e9c <+24>:	ldr	r0, [sp, #0]
+//    0x08000e9e <+26>:	adds	r0, #1
+//    0x08000ea0 <+28>:	str	r0, [sp, #0]
+//    0x08000ea2 <+30>:	bl	0x8000fa6 <lib::__bkpt>
+//    0x08000ea6 <+34>:	mov	r0, r4
+//    0x08000ea8 <+36>:	bl	0x8000f46 <core::ptr::read_volatile>
+//    0x08000eac <+40>:	b.n	0x8000e98 <rtic_bare1::init+20>
+//  End of assembler dump.
+
 //
 //    Can this code generate a panic?
 //
-//    ** your answer here **
+//    Yes, it's the same as for the case with Release-mode
 //
 //    Is there now any reference to the panic handler?
 //    If not, why is that the case?
 //
-//    ** your answer here **
+//    No, because we call the function wrapping_add(1) and it's thus safe
 //
 //    commit your answers (bare1_5)
 //

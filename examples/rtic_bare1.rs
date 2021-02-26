@@ -89,20 +89,22 @@ const APP: () = {
 //
 //    What is the value of `x`?
 //
-//    ** your answer here **
+//    4294967294
 //
 //    Explain in your own words where this value comes from.
 //
-//    ** your answer here **
+//    It's the highest number that's possible to represent with an unsigned integer minus one
 //
 //    Now continue the program, since you are in a loop
 //    the program will halt again at line 24.
 //
 //    What is the value of `x`?
 //
+//    4294967295
+//
 //    Explain in your own words why `x` now has this value.
 //
-//    ** your answer here **
+//    Our function increases our variable x by one (1) every loop iteration
 //
 //    Now continue again.
 //
@@ -116,7 +118,7 @@ const APP: () = {
 //
 //    Explain in your own words why a panic makes sense at this point.
 //
-//    ** your answer here **
+//    The debugger sees that this variable will grow beyond it's declared size and panics
 //
 //    Commit your answer (bare1_3)
 //

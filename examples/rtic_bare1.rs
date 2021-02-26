@@ -25,9 +25,9 @@ const APP: () = {
             cortex_m::asm::bkpt();
 
             // prevent optimization by read-volatile (unsafe)
-            unsafe {
-                core::ptr::read_volatile(&x);
-            }
+            //unsafe {
+                //core::ptr::read_volatile(&x);
+            //}
         }
     }
 };
@@ -346,12 +346,19 @@ const APP: () = {
 //
 //    Dump the generated assembly.
 //
-//    ** your answer here **
+//    Dump of assembler code for function rtic_bare1::init:
+//       0x08000240 <+0>:	push	{r7, lr}
+//       0x08000242 <+2>:	mov	r7, sp
+//    => 0x08000244 <+4>:	bkpt	0x0000
+//       0x08000246 <+6>:	bkpt	0x0000
+//       0x08000248 <+8>:	b.n	0x8000244 <rtic_bare1::init+4>
+//    End of assembler dump.
+
 //
 //    Where is the local variable stored?
 //    What happened, and why is Rust + LLVM allowed to optimize out your code?
 //
-//    ** your answer here **
+//    Nowhere. I guess RUSt realizes that the variable "x" is never used and optimizes the code for us. 
 //
 //    Commit your answers (bare1_6)
 //

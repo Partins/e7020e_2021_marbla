@@ -45,11 +45,11 @@ const APP: () = {
 //
 //    Paste the error message:
 //
-//    ** your answer here **
+//    "panicked at 'attempt to add with overflow', examples/rtic_bare1.rs:24:13"
 //
 //    Explain in your own words why the code panic:ed.
 //
-//    ** your answer here **
+//    The variable x grows beyond max size of a u32 type and overflows
 //
 //    Commit your answer (bare1_1)
 //

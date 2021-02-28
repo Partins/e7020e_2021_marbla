@@ -2,10 +2,10 @@
 
 ## 2021-02-28
 
-- examples/bare2.rs, raw timer access.
-- examples/bare3.rs, timing abstractions.
-- examples/bare4.rs, a simple bare metal peripheral access API.
-- examples/bare5.rs, write your own C-like peripheral access API.
+- examples/rtic_bare2.rs, raw timer access.
+- examples/rtic_bare3.rs, timing abstractions.
+- examples/rtic_bare4.rs, a simple bare metal peripheral access API.
+- examples/rtic_bare5.rs, write your own C-like peripheral access API.
 
 ## 2021-02-26
 

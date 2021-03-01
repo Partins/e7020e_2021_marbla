@@ -1,4 +1,4 @@
-//! bare5.rs
+//! rtic_bare5.rs
 //!
 //! C Like Peripheral API
 //!
@@ -177,6 +177,8 @@ const APP: () = {
         let r = gpioa.MODER.read() & !(0b11 << (5 * 2)); // read and mask
         gpioa.MODER.write(r | 0b01 << (5 * 2)); // set output mode
 
+        // test_modify();
+
         loop {
             // set PA5 high
             gpioa.BSRRH.write(1 << 5); // set bit, output hight (turn on led)
@@ -198,11 +200,6 @@ const APP: () = {
     }
 };
 
-// 0. Build and run the application.
-//
-//    > cargo build --example bare5
-//    (or use the vscode)
-//
 // 1. C like API.
 //    Using C the .h files are used for defining interfaces, like function signatures (prototypes),
 //    structs and macros (but usually not the functions themselves).
@@ -211,9 +208,8 @@ const APP: () = {
 //    provided by ST (and other companies). Actually, the file presented here is mostly a
 //    cut/paste/replace of the stm32f40x.h, just Rustified.
 //
-//
 //    In the loop we access PA5 through bit set/clear operations.
-//    Comment out those operations and uncomment the the ODR accesses.
+//    Comment out those operations and uncomment the ODR based accesses.
 //    (They should have the same behavior, but is a bit less efficient.)
 //
 //    Run and see that the program behaves the same.
@@ -228,11 +224,9 @@ const APP: () = {
 //
 //    Implement and check that running `test` gives you expected behavior.
 //
-//    Change the code into using your new API.
+//    Change the code into using your new `modify` API.
 //
 //    Run and see that the program behaves the same.
-//
-//    Commit your answers (bare5_2)
 //
 //    Discussion:
 //    As with arithmetic operations, default semantics differ in between
@@ -248,3 +242,5 @@ const APP: () = {
 //    Wouldn't that be great?
 //
 //    ** your answer here **
+//
+//    Commit your answers (bare5_2)

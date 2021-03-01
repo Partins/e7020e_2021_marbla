@@ -1,4 +1,4 @@
-//! bare4.rs
+//! rtic_bare4.rs
 //!
 //! Access to Peripherals
 //!

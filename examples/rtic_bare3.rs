@@ -1,4 +1,4 @@
-//! bare3.rs
+//! rtic_bare3.rs
 //!
 //! Measuring execution time
 //!

@@ -1,4 +1,4 @@
-//! bare2.rs
+//! rtic_bare2.rs
 //!
 //! Measuring execution time
 //!
@@ -9,11 +9,6 @@
 
 #![no_main]
 #![no_std]
-
-// use panic_halt as _;
-
-// use cortex_m::{iprintln, peripheral::DWT, Peripherals};
-// use cortex_m_rt::entry;
 
 use cortex_m::peripheral::DWT;
 use cortex_m_semihosting::hprintln;
@@ -124,7 +119,7 @@ fn wait(i: u32) {
 //
 //    Commit your answers (bare2_2)
 //
-// 3. Now add a second call to `wait` (line 47).
+// 3. Now add a second call to `wait` (line 42).
 //
 //    Recompile and run until the breakpoint.
 //
@@ -136,4 +131,4 @@ fn wait(i: u32) {
 //
 //    ** your answer here **
 //
-//
+//    Commit your answers (bare2_3)

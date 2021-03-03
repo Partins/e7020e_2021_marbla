@@ -24,11 +24,11 @@ const APP: () = {
         let start = Instant::now();
         wait(1_000_000);
         let end = Instant::now();
-
+        
         // notice all printing outside of the section to measure!
         hprintln!("Start {:?}", start).ok();
         hprintln!("End {:?}", end).ok();
-        // hprintln!("Diff {:?}", (end - start) ).ok();
+        hprintln!("Diff {:?}", ((end-start).as_cycles()) ).ok();
     }
 };
 
@@ -62,7 +62,8 @@ fn wait(i: u32) {
 //
 //    What is the output in the Adapter Output console?
 //
-//    ** your answer here **
+//    Start Instant(296218223)
+//    End Instant(300218240)
 //
 //    As you see line 31 is commented out (we never print the difference).
 //
@@ -76,7 +77,9 @@ fn wait(i: u32) {
 //
 //    What is now the output in the Adapter Output console?
 //
-//    ** your answer here **
+//    Start Instant(4190319065)
+//    End Instant(4194319081)
+//    Diff 4000016
 //
 //    Commit your answers (bare3_1)
 //

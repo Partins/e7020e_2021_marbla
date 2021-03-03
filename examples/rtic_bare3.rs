@@ -28,7 +28,7 @@ const APP: () = {
         // notice all printing outside of the section to measure!
         hprintln!("Start {:?}", start).ok();
         hprintln!("End {:?}", end).ok();
-        hprintln!("Diff {:?}", ((end-start).as_cycles()) ).ok();
+        hprintln!("Diff {:?}", ((end.duration_since(start)).as_cycles()) ).ok();
     }
 };
 
@@ -89,7 +89,9 @@ fn wait(i: u32) {
 //
 //    What is now the output in the Adapter Output console?
 //
-//    ** your answer here **
+//    Start Instant(1289686379)
+//    End Instant(1293686395)
+//    Diff 4000016
 //
 //    Commit your answers (bare3_2)
 //

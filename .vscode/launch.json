@@ -78,28 +78,6 @@
             },
             "executable": "./target/thumbv7em-none-eabihf/release/examples/${fileBasenameNoExtension}",
             "cpu": "cortex-m4",
-        },
-        {
-            "type": "cortex-debug",
-            "request": "launch",
-            "name": "Cortex Nightly",
-            "servertype": "openocd",
-            "cwd": "${workspaceRoot}",
-            "preLaunchTask": "cargo build --example --release --nightly",
-            "runToMain": true,
-            "svdFile": "${workspaceRoot}/.vscode/STM32F401.svd",
-            "configFiles": [
-                "interface/stlink-v2-1.cfg",
-                "target/stm32f4x.cfg"
-            ],
-            "preRestartCommands": [
-                "load",
-            ],
-            "postLaunchCommands": [
-                "monitor arm semihosting enable"
-            ],
-            "executable": "./target/thumbv7em-none-eabihf/release/examples/${fileBasenameNoExtension}",
-            "cpu": "cortex-m4",
-        },
+        }
     ]
 }

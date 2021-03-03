@@ -1,5 +1,12 @@
 # Changelog
 
+## 2021-02-28
+
+- examples/rtic_bare2.rs, raw timer access.
+- examples/rtic_bare3.rs, timing abstractions.
+- examples/rtic_bare4.rs, a simple bare metal peripheral access API.
+- examples/rtic_bare5.rs, write your own C-like peripheral access API.
+
 ## 2021-02-26
 
 - examples/bare1.rs, bare metal 101!

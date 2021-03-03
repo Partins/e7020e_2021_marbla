@@ -109,7 +109,15 @@ fn wait(i: u32) {
 //
 //    Dump generated assembly for the "wait" function.
 //
-//    ** your answer here **
+//    0x080004a0 <+0>:	push	{r7, lr}
+//    0x080004a2 <+2>:	mov	r7, sp
+//    0x080004a4 <+4>:	movw	r0, #16960	; 0x4240
+//    0x080004a8 <+8>:	movt	r0, #15
+//    0x080004ac <+12>:	nop
+//    0x080004ae <+14>:	subs	r0, #1
+//    0x080004b0 <+16>:	bne.n	0x80004ac <rtic_bare2::wait+12>
+// => 0x080004b2 <+18>:	pop	{r7, pc}
+
 //
 //    Under the ARM calling convention, r0.. is used as arguments.
 //    However in this case, we se that r0 is set by the assembly instructions,
@@ -119,7 +127,9 @@ fn wait(i: u32) {
 //
 //    Answer in your own words, how they assign r0 to 1000000.
 //
-//    ** your answer here **
+//    The ARM instructions are a cetrain length and cannot thus wotk with very large numbers. 
+//    What happens is that is splits the number in two and the movw puts the least-significant
+//    bits in the lower part of register r0. mowt puts the most significant bits in the upper part of r0. 
 //
 //    Commit your answers (bare2_2)
 //

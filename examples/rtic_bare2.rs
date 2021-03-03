@@ -39,7 +39,7 @@ const APP: () = {
         hprintln!("End {:?}", end).ok();
         hprintln!("Diff {:?}", end.wrapping_sub(start)).ok();
 
-        // wait(100);
+        wait(1_000_000);
     }
 };
 
@@ -139,10 +139,16 @@ fn wait(i: u32) {
 //
 //    Dump the generated assembly for the "wait" function.
 //
-//    ** your answer here **
+//       0x080004a0 <+0>:	push	{r7, lr}
+//       0x080004a2 <+2>:	mov	r7, sp
+//       0x080004a4 <+4>:	nop
+//       0x080004a6 <+6>:	subs	r0, #1
+//       0x080004a8 <+8>:	bne.n	0x80004a4 <rtic_bare2::wait+4>
+//    => 0x080004aa <+10>:	pop	{r7, pc}
+//    
 //
 //    Answer in your own words, why you believe the generated code differs?
 //
-//    ** your answer here **
+//    We don't get to very big numbers when using the DWT::get_cycle_count()
 //
 //    Commit your answers (bare2_3)

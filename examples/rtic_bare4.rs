@@ -35,8 +35,8 @@ use address::*;
 
 #[inline(always)]
 fn read_u32(addr: u32) -> u32 {
-    unsafe { core::ptr::read_volatile(addr as *const _) }
-    // core::ptr::read_volatile(addr as *const _)
+    //unsafe { core::ptr::read_volatile(addr as *const _) }
+     core::ptr::read_volatile(addr as *const _)
 }
 
 #[inline(always)]
@@ -100,12 +100,14 @@ const APP: () = {
 //
 //    What was the error message and explain why.
 //
-//    ** your answer here **
+//    error[E0133]: call to unsafe function is unsafe and requires unsafe function or block
+//
+//    We'd have to declare that we know that the function is unsafe to tell the compiler that we're awere of it
 //
 //    Digging a bit deeper, why do you think `read_volatile` is declared `unsafe`.
 //    (https://doc.rust-lang.org/core/ptr/fn.read_volatile.html, for some food for thought )
 //
-//    ** your answer here **
+//    The function reads straight from the register so it may create a race condition. 
 //
 //    Commit your answers (bare4_2)
 //

@@ -71,16 +71,20 @@ fn wait(i: u32) {
 //    What is the output in the Adapter Output console?
 //    (Notice, it will take a while we loop one million times at only 16 MHz.)
 //
-//    ** your answer here **
+//    Start 7230581
+//    End 174230664
+//    Diff 167000083
 //
 //    Rebuild and run in (Cortex Release).
 //
-//    ** your answer here **
+//    Start 688947251
+//    End 692947267
+//    Diff 4000016
 //
 //    Compute the ratio between debug/release optimized code
 //    (the speedup).
 //
-//    ** your answer here **
+//    41,75
 //
 //    commit your answers (bare2_1)
 //

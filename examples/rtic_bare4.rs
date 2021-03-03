@@ -56,11 +56,11 @@ fn wait(i: u32) {
 const APP: () = {
     #[init]
     fn init(_cx: init::Context) {
-        // power on GPIOA
-        let r = read_u32(RCC_AHB1ENR); // read
+        // power on GPIOA (Section 6.3.11)
+        let r = read_u32(RCC_AHB1ENR); // read 
         write_u32(RCC_AHB1ENR, r | 1); // set enable
 
-        // configure PA5 as output
+        // configure PA5 as output (Section 8.4.1)
         let r = read_u32(GPIOA_MODER) & !(0b11 << (5 * 2)); // read and mask
         write_u32(GPIOA_MODER, r | 0b01 << (5 * 2)); // set output mode
 
@@ -68,7 +68,7 @@ const APP: () = {
         // this is more efficient as the read register is not needed.
 
         loop {
-            // set PA5 high
+            // set PA5 high (Section 8.4.7)
             write_u32(GPIOA_BSRR, 1 << 5); // set bit, output hight (turn on led)
             wait(10_000);
 
@@ -83,7 +83,7 @@ const APP: () = {
 //
 // 1.  Did you enjoy the blinking?
 //
-//    ** your answer here **
+//    YES, it was amazing, almost as beautiful as northern lights.
 //
 //    Now lookup the data-sheets, and read each section referred,
 //    6.3.11, 8.4.1, 8.4.7

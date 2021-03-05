@@ -58,7 +58,8 @@ mod stm32f40x {
     impl VolatileCell<u32> {
         #[inline(always)]
         pub fn modify(&self, offset: u8, width: u8, value: u32) {
-            // your code here
+            let mask: u32 = (0b1 << width) -1;
+            self.write(!(mask << offset) & self.read() | (value & mask) << offset);
         }
     }
 
@@ -177,7 +178,7 @@ const APP: () = {
         let r = gpioa.MODER.read() & !(0b11 << (5 * 2)); // read and mask
         gpioa.MODER.write(r | 0b01 << (5 * 2)); // set output mode
 
-        // test_modify();
+        test_modify();
 
         loop {
             // set PA5 high
@@ -243,6 +244,6 @@ const APP: () = {
 //    What if we could automatically generate that from Vendors specifications (SVD files)?
 //    Wouldn't that be great?
 //
-//    ** your answer here **
+//    Yes, it would
 //
 //    Commit your answers (bare5_2)

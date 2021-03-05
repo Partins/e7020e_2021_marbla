@@ -55,7 +55,7 @@ const APP: () = {
 
         let rcc = device.RCC.constrain();
 
-        let _clocks = rcc.cfgr.freeze();
+        // let _clocks = rcc.cfgr.freeze();
 
         // Set up the system clock. 48 MHz?
         // let _clocks = rcc
@@ -63,7 +63,12 @@ const APP: () = {
         //     .sysclk(48.mhz())
         //     .pclk1(24.mhz())
         //     .freeze();
-
+        let c = rcc
+            .cfgr
+            .sysclk(64.mhz())
+            .pclk1(64.mhz())
+            .pclk2(64.mhz())
+            .freeze();
         // pass on late resources
         init::LateResources {
             GPIOA: device.GPIOA,
@@ -126,6 +131,88 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
     gpioc.ospeedr.modify(|_, w| w.ospeedr9().bits(0b11));
 }
 
+// 0. Background reading:
+//
+//    Clock trees:
+//    STM32F401xD STM32F401xE, section 3.11
+//    We have two AMBA High-performance Buses (APBs)
+//    APB1 low speed bus (max freq 42 MHz)
+//    APB2 high speed bus (max freq 84 MHz)
+//
+//    RM0368 Section 6.2
+//    Some important/useful clock acronyms and their use:
+//
+//    SYSCLK - the clock that drives the `core`
+//    HCLK   - the clock that drives the AMBA bus(es), memory, DMA, trace unit, etc.
+//
+//    Typically we set HCLK = SYSCLK / 1 (no prescale) for our applications
+//
+//    FCLK   - Free running clock running at HCLK
+//
+//    CST    - CoreSystemTimer drives the SysTick counter, HCLK/(1 or 8)
+//    PCLK1  - The clock driving the APB1 (<= 42 MHz)
+//             Timers on the APB1 bus will be triggered at PCLK1 * 2
+//    PCLK2  - The clock driving the APB2 (<= 84 MHz)
+//             Timers on the APB2 bus will be triggered at PCLK2
+//
+//    Configuration:
+//
+//    The `Cargo.toml` file defines your dependencies.
+//
+//    [dependencies.stm32f4]
+//    version = "0.13.0"
+//    features = ["stm32f411", "rt"]
+//
+//    [dependencies.stm32f4xx-hal]
+//    version = "0.8.3"
+//    features = ["rt", "stm32f411", "usb_fs"]
+//
+//    The stm32f411 and f401 is essentially the same chip, the f411 is guaranteed
+//    up to 100MHz, but we can "overclock" the f401 to 100MHz if needed.
+//
+//    The `features = ["stm32f411", "rt"]` selects the target MCU, and
+//    "rt" enables functionality for exception handling etc.
+//
+//    The HAL provides a generic abstraction over the whole stm32f4 family.
+//
+//    In our configuration we enable "stm32f411" with the "rt" feature
+//    and the "usb_fs" (for USB OnTheGo support).
+//
+//    The HAL re-exports the selected "stm32f411" under the `stm32` path.
+//
+//    Initialization:
+//
+//    In the code, we first setup the DWT/CYCCNT for the Monotonic timer,
+//    and schedule a task to be run after `OFFSET` number of clock cycles.
+//
+//    The `device.RCC.constrain()`, gives a default setting for the MCU RCC
+//    (Reset and Clock Control) peripheral.
+//    `rcc.cfgr.x.freeze()`, freezes the current (default) config.
+//
+//    What is wrong with the following configurations?
+//
+//    `rcc.cfgr.sysclk(64.mhz()).pclk1(64.mhz()).pclk2(64.mhz()).freeze()`;
+//
+//    ** your answer here **
+//
+//    `rcc.cfgr.sysclk(84.mhz()).pclk1(42.mhz()).pclk2(64.mhz()).freeze();`
+//
+//    ** your answer here **
+//
+//    Start `stm32cubemx` and select or create a project targeting stm32f401.
+//    Go to the graphical clock configuration view.
+//
+//    Try to setup the clock according to:
+//
+//    `rcc.cfgr.sysclk(64.mhz()).pclk1(64.mhz()).pclk2(64.mhz()).freeze()`;
+//
+//    What happens?
+//
+//    ** your answer here **
+//
+//
+//    Commit your answers (bare6_0)
+//
 // 1. In this example you will use RTT.
 //
 //    > cargo run --example rtic_bare6
@@ -144,7 +231,7 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //
 //    ** your answer here **
 //
-//    commit your answers (bare6_1)
+//    Commit your answers (bare6_1)
 //
 // 2. Now connect an oscilloscope to PC9, which is set to
 //    output the MCO2.
@@ -192,7 +279,7 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //    ** your answer here **
 //
 //    Make a screen dump or photo of the oscilloscope output.
-//    Save the the picture as "bare_6_64mhz_high_speed".
+//    Save the the picture as "bare_6_48mhz_high_speed".
 //
 //    Commit your answers (bare6_4)
 //
@@ -218,6 +305,23 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //    Test that the application still runs as before.
 //
 //    Commit your code (bare6_5)
+//
+// 6. Now reprogram the PC9 to be "Low Speed", and re-run at 84Mz.
+//
+//    Did the frequency change in comparison to assignment 5?
+//
+//    ** your answer here **
+//
+//    What is the peak to peak reading of the signal (and why did it change)?
+//
+//    ** your answer here **
+//
+//    Make a screen dump or photo of the oscilloscope output.
+//    Save the the picture as "bare_7_84mhz_low_speed".
+//
+//    Commit your answers (bare7_3)
+//
+//
 //
 // 6. Discussion
 //

@@ -84,6 +84,7 @@ Bare metal programming:
 - `examples/rtic_bare3.rs`, here you learn more about RTIC timing semantics and timing abstractions.
 - `examples/rtic_bare4.rs`, in this exercise you will encounter a simple bare metal peripheral access API. The API is very unsafe and easy to misuse.
 - `examples/rtic_bare5.rs`, here you will write your own C-like peripheral access API. This API is much safer as you get control over bit-fields in a well defined way, thus less error prone.
+- `examples/rtic_bare6.rs`, in this exercise you learn about clock tree generation and validation.
 
 ---
 

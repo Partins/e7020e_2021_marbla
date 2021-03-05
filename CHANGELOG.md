@@ -1,5 +1,9 @@
 # Changelog
 
+## 2021-03-05
+
+- examples/rtic_bare6.rs, setup and validate the clock tree.
+
 ## 2021-02-28
 
 - examples/rtic_bare2.rs, raw timer access.

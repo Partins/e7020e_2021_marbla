@@ -120,16 +120,17 @@ const APP: () = {
 //
 //    Why is it important that ordering of volatile operations are ensured by the compiler?
 //
-//    ** your answer here **
+//    Because the volatile operation may be used by an other thread and sometime we want the code to
+//    be deterministic. 
 //
 //    Give an example in the above code, where reordering might make things go horribly wrong
 //    (hint, accessing a peripheral not being powered...)
 //
-//    ** your answer here **
+//    We don't know what we'll get if we read before powering on the GPIO
 //
 //    Without the non-reordering property of `write_volatile/read_volatile` could that happen in theory
 //    (argue from the point of data dependencies).
 //
-//    ** your answer here **
+//    YES, if the compiler thinks it can be optimized it will
 //
 //    Commit your answers (bare4_3)

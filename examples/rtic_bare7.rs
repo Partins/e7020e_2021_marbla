@@ -231,9 +231,9 @@ fn _toggleable_generic<E>(led: &mut dyn ToggleableOutputPin<Error = E>) {
 //    way to implement it more efficiently. Remember, zero-cost is not without cost
 //    just that it is as good as it possibly gets (you can't make it better by hand).
 //
-//    (You can also force the compiler to deduce the type at compile time, by using
+//    You can also force the compiler to deduce the type at compile time, by using
 //    `impl` instead of `dyn`, if you are sure you don't want the compiler to
-//    "fallback" to dynamic dispatch.)
+//    "fallback" to dynamic dispatch.
 //
 //    You might find Rust to have long compile times. Yes you are right,
 //    and this type of deep analysis done in release mode is part of the story.

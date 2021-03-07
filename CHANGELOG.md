@@ -1,5 +1,11 @@
 # Changelog
 
+## 2021-03-07
+
+- examples/rtic_bare7.rs, using embedded HAL.
+- examples/rtic_bare8.rs, serial communication, bad design.
+- examples/rtic_bare9.rs, serial communication, good design.
+  
 ## 2021-03-05
 
 - examples/rtic_bare6.rs, setup and validate the clock tree.

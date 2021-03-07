@@ -1,14 +1,25 @@
 //! rtic_bare7.rs
 //!
-//! Clocking
+//! HAL OutputPin abstractions
 //!
 //! What it covers:
 //! - using embedded hal, and the OutputPin abstraction
+
+#![no_main]
+#![no_std]
 
 use panic_rtt_target as _;
 use rtic::cyccnt::{Instant, U32Ext as _};
 use rtt_target::{rprintln, rtt_init_print};
 use stm32f4xx_hal::stm32;
+
+use stm32f4xx_hal::{
+    gpio::{gpioa::PA5, Output, PushPull},
+    prelude::*,
+};
+
+use core::convert::Infallible;
+use embedded_hal::digital::v2::{OutputPin, ToggleableOutputPin};
 
 const OFFSET: u32 = 8_000_000;
 
@@ -17,6 +28,7 @@ const APP: () = {
     struct Resources {
         // late resources
         GPIOA: stm32::GPIOA,
+        // led: PA5<Output<PushPull>>,
     }
     #[init(schedule = [toggle])]
     fn init(cx: init::Context) -> init::LateResources {
@@ -76,23 +88,38 @@ const APP: () = {
     }
 };
 
+fn _toggle_generic(led: &mut dyn OutputPin<Error = Infallible>, toggle: &mut bool) {
+    if *toggle {
+        led.set_high().ok();
+    } else {
+        led.set_low().ok();
+    }
+
+    *toggle = !*toggle;
+}
+
+fn _toggleable_generic(led: &mut dyn ToggleableOutputPin<Error = Infallible>) {
+    led.toggle().ok();
+}
+
 // 1. In this example you will use RTT.
 //
 //    > cargo run --example rtic_bare7
 //
-//    Now look at the documentation for `embedded_hal::digital::v2::OutputPin`.
+//    Look in the generated documentation for `set_high`/`set_low`.
 //    (You created documentation for your dependencies in previous exercise
 //    so you can just search (press `S`) for `OutputPin`).
+//    You will find that these methods are implemented for `Output` pins.
 //
-//    You see that the OutputPin trait defines `set_low`/`set_high` functions.
-//    Your task is to alter the code to use the `set_low`/`set_high` API.
+//    Now change your code to use these functions instead of the low-level GPIO API.
 //
 //    HINTS:
 //    - A GPIOx peripheral can be `split` into individual PINs Px0..Px15).
 //    - A Pxy, can be turned into an `Output` by `into_push_pull_output`.
 //    - You may optionally set other pin properties as well (such as `speed`).
 //    - An `Output` pin provides `set_low`/`set_high`
-//      (and implements the `OutputPin` trait in embedded-hal).
+//    - Instead of passing `GPIO` resource to the `toggle` task pass the
+//      `led: PA5<Output<PushPull>>` resource instead.
 //
 //    Comment your code to explain the steps taken.
 //
@@ -101,29 +128,71 @@ const APP: () = {
 //
 //    Commit your code (bare7_1)
 //
-// 2. Optional
+// 2. Further generalizations:
 //
-//    Use the `toggle` function instead to further simply your code.
+//    Now look at the documentation for `embedded_hal::digital::v2::OutputPin`.
 //
-//    Notice:
-//    The `ToggleableOutputPin` abstraction requires `embedded-hal`
-//    to compiled with the `unproven` feature.
+//    You see that the OutputPin trait defines `set_low`/`set_high` functions.
+//    Your task is to alter the code to use the `set_low`/`set_high` API.
 //
-//    The `embedded-hal` traits is mostly used to write drivers
-//    that is hardware agnostic (and thus cross platform).
+//    The function `_toggle_generic` is generic to any object that
+//    implements the `OutputPin<Error = Infallible>` trait.
 //
-//    However:
-//    In our case we can use `toggle` directly as implemented by the `stm32f4xx-hal`.
+//    The type parameter `Error = Infallible` indicates that
+//    there are no errors to be expected (hence infallible).
 //
-//    Confirm that your implementation correctly toggles the LED.
+//    Our `PA5<Output<PushPull>>` (led) is such an implementor.
+//    Additionally, `_toggle_generic` takes a mutable reference
+//    `toggle: &mut bool`, so you need to pass your `TOGGLE` variable.
 //
-//    Which one do you prefer and why (what problem does it solve)?
+//    As you see, `TOGGLE` holds the "state", switching between
+//    `true` and `false` (to make your led blink).
 //
-//    ** your answer here **
+//    Change your code into using the `_toggle_generic` function.
+//    (You may rename it to `toggle_generic` if wished.)
 //
-//    Commit your answer (bare7_2)
+//    Confirm that your implementation correctly toggles the LED as in
+//    previous exercise.
 //
-// 3. Discussion
+//    Commit your code (bare7_2)
 //
-//    In this exercise you have learned more on navigating the generated documentation
-//    and to use abstractions to simplify and generalize your code.
+// 3. What about the state?
+//
+//    In your code `TOGGLE` holds the "state". However, the underlying
+//    hardware ALSO holds the state (if the corresponding bit is set/cleared). 
+//
+//    What if we can leverage that, and guess what we can!!!!
+//
+//    Look at the documentation for `embedded_hal::digital::v2::ToggleableOutputPin`,
+//    and the implementation of:
+//
+//    fn _toggleable_generic(led: &mut dyn ToggleableOutputPin<Error = Infallible>) {
+//      led.toggle().ok();
+//    }
+//
+//    The latter does not take any state variable, instead it directly `toggle()`
+//    the `ToggleableOutputPin`.
+//
+//    Now alter your code to leverage on the `_toggleable_generic` function.
+//    (You should be able to remove the `TOGGLE` state variable altogether.)
+//
+//    Confirm that your implementation correctly toggles the LED as in
+//    previous exercise.
+//
+//    Commit your code (bare7_3)
+//
+// 4. Discussion:
+//   
+//    In this exercise you have gone from a very hardware specific implementation,
+//    to leveraging abstractions (batteries included).
+//
+//    Your final code amounts to "configuration" rather than "coding".
+//
+//    This reduces the risk of errors (as you let the libraries do the heavy lifting).
+// 
+//    This also improves code-re use. E.g., if you were to do something less
+//    trivial then merely toggling you can do that in a generic manner,
+//    breaking out functionality into "components" re-usable in other applications.
+//      
+//    Of course the example is trivial, you don't gain much here, but the principle
+//    is the same behind drivers for USART communication, USB, PMW3389 etc.

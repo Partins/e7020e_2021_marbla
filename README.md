@@ -85,6 +85,9 @@ Bare metal programming:
 - `examples/rtic_bare4.rs`, in this exercise you will encounter a simple bare metal peripheral access API. The API is very unsafe and easy to misuse.
 - `examples/rtic_bare5.rs`, here you will write your own C-like peripheral access API. This API is much safer as you get control over bit-fields in a well defined way, thus less error prone.
 - `examples/rtic_bare6.rs`, in this exercise you learn about clock tree generation and validation.
+- `examples/rtic_bare7.rs`, here you learn more on using embedded HAL abstractions and the use of generics.
+- `examples/rtic_bare8.rs`, in this exercise you will setup serial communication to receive and send data. You will also see that polling may lead to data loss in a bad design.
+- `examples/rtic_bare9.rs`, here you revisit serial communication and implement a good design in RTIC leveraging preemptive scheduling to ensure lossless communication.
 
 ---
 

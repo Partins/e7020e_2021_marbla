@@ -17,8 +17,7 @@ use stm32f4xx_hal::{
     gpio::{gpioa::PA5, Output, PushPull},
     prelude::*,
 };
-
-use core::convert::Infallible;
+;
 use embedded_hal::digital::v2::{OutputPin, ToggleableOutputPin};
 
 const OFFSET: u32 = 8_000_000;
@@ -88,7 +87,7 @@ const APP: () = {
     }
 };
 
-fn _toggle_generic(led: &mut dyn OutputPin<Error = Infallible>, toggle: &mut bool) {
+fn _toggle_generic<E>(led: &mut dyn OutputPin<Error = E>, toggle: &mut bool) {
     if *toggle {
         led.set_high().ok();
     } else {
@@ -98,7 +97,7 @@ fn _toggle_generic(led: &mut dyn OutputPin<Error = Infallible>, toggle: &mut boo
     *toggle = !*toggle;
 }
 
-fn _toggleable_generic(led: &mut dyn ToggleableOutputPin<Error = Infallible>) {
+fn _toggleable_generic<E>(led: &mut dyn ToggleableOutputPin<Error = E>) {
     led.toggle().ok();
 }
 
@@ -136,12 +135,20 @@ fn _toggleable_generic(led: &mut dyn ToggleableOutputPin<Error = Infallible>) {
 //    Your task is to alter the code to use the `set_low`/`set_high` API.
 //
 //    The function `_toggle_generic` is generic to any object that
-//    implements the `OutputPin<Error = Infallible>` trait.
+//    implements the `OutputPin<Error = E>` trait.
 //
-//    The type parameter `Error = Infallible` indicates that
+//    Digging deeper we find the type parameter `E`, which in this case
+//    is left generic (unbound).
+//
+//    It will be instantiated with a concrete type argument when called.
+//
+//    Our `PA5<Output<PushPull>>` implements `OutputPin` trait, thus
+//    we can pass the `led` resource to `_toggle_generic`.
+//    
+//    The error type is given by the stm32f4xx-hal implementation:
+//    where `core::convert::Infallible` is used to indicate
 //    there are no errors to be expected (hence infallible).
 //
-//    Our `PA5<Output<PushPull>>` (led) is such an implementor.
 //    Additionally, `_toggle_generic` takes a mutable reference
 //    `toggle: &mut bool`, so you need to pass your `TOGGLE` variable.
 //
@@ -159,7 +166,7 @@ fn _toggleable_generic(led: &mut dyn ToggleableOutputPin<Error = Infallible>) {
 // 3. What about the state?
 //
 //    In your code `TOGGLE` holds the "state". However, the underlying
-//    hardware ALSO holds the state (if the corresponding bit is set/cleared). 
+//    hardware ALSO holds the state (if the corresponding bit is set/cleared).
 //
 //    What if we can leverage that, and guess what we can!!!!
 //
@@ -182,17 +189,49 @@ fn _toggleable_generic(led: &mut dyn ToggleableOutputPin<Error = Infallible>) {
 //    Commit your code (bare7_3)
 //
 // 4. Discussion:
-//   
+//
 //    In this exercise you have gone from a very hardware specific implementation,
 //    to leveraging abstractions (batteries included).
 //
 //    Your final code amounts to "configuration" rather than "coding".
 //
 //    This reduces the risk of errors (as you let the libraries do the heavy lifting).
-// 
+//
 //    This also improves code-re use. E.g., if you were to do something less
 //    trivial then merely toggling you can do that in a generic manner,
 //    breaking out functionality into "components" re-usable in other applications.
-//      
+//
 //    Of course the example is trivial, you don't gain much here, but the principle
 //    is the same behind drivers for USART communication, USB, PMW3389 etc.
+//
+// 5. More details:
+//    
+//    Looking closer at the implementation:
+//    `led: &mut dyn OutputPin<Error = E>`
+//
+//    You may ask what kind of mumbo jumbo is at play here.
+//
+//    This is the way to express that we expect a mutable reference to a trait object 
+//    that implements the `OutputPin`. Since we will change the underlying object
+//    (in this case an GPIOA pin 5) the reference needs to be mutable.
+// 
+//    Trait objects are further explained in the Rust book.
+//    The `dyn` keyword indicates dynamic dispatch (through a VTABLE).
+//    https://doc.rust-lang.org/std/keyword.dyn.html
+//
+//    Notice: the Rust compiler (rustc + LLVM) is really smart. In many cases
+//    it can analyse the call chain, and conclude the exact trait object type at hand.
+//    In such cases the dynamic dispatch is turned into a static dispatch
+//    and the VTABLE is gone, and we have a zero-cost abstraction.
+//
+//    If the trait object is stored for e.g., in an array along with other
+//    trait objects (of different concrete type), there is usually no telling
+//    the concrete type of each element, and we will have dynamic dispatch.
+//    Arguably, this is also a zero-cost abstraction, as there is no (obvious)
+//    way to implement it more efficiently. Remember, zero-cost is not without cost
+//    just that it is as good as it possibly gets (you can't make it better by hand).
+//
+//    You might find Rust to have long compile times. Yes you are right,
+//    and this type of deep analysis done in release mode is part of the story.
+//    On the other hand, the aggressive optimization allows us to code 
+//    in a generic high level fashion and still have excellent performing binaries.

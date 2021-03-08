@@ -80,7 +80,7 @@ Using `vscode` just press F5 to launch and debug the program in the currently ac
 Bare metal programming:
 
 - `examples/rtic_bare1.rs`, in this exercise you learn about debugging, inspecting the generated assembly code, inline assembly, and about checked vs. unchecked (wrapping) arithmetics. Provides essential skills and understanding of low level (bare metal) programming.
-- `examples/rtic_/bare2.rs`, in this exercise you learn how to measure execution time using raw timer access.
+- `examples/rtic_bare2.rs`, in this exercise you learn how to measure execution time using raw timer access.
 - `examples/rtic_bare3.rs`, here you learn more about RTIC timing semantics and timing abstractions.
 - `examples/rtic_bare4.rs`, in this exercise you will encounter a simple bare metal peripheral access API. The API is very unsafe and easy to misuse.
 - `examples/rtic_bare5.rs`, here you will write your own C-like peripheral access API. This API is much safer as you get control over bit-fields in a well defined way, thus less error prone.

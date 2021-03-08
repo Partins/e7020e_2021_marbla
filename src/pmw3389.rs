@@ -166,38 +166,6 @@ where
         let srom_id = pmw3389.read_register(Register::SROMId)?;
         rprintln!("srom_id {}, 0x{:x}", srom_id, srom_id);
 
-        // loop {
-        //     pmw3389.write_register(Register::Motion, 0x01)?;
-
-        //     let motion = pmw3389.read_register(Register::Motion)?;
-        //     let xl = pmw3389.read_register(Register::DeltaXL)?;
-        //     let xh = pmw3389.read_register(Register::DeltaXH)?;
-        //     let yl = pmw3389.read_register(Register::DeltaYL)?;
-        //     let yh = pmw3389.read_register(Register::DeltaYH)?;
-
-        //     let x = (xl as u16 + (xh as u16) << 8) as i16;
-        //     let y = (yl as u16 + (yh as u16) << 8) as i16;
-
-        //     let surface = motion & 0x08;
-        //     let motion_detect = motion & 0x80;
-
-        //     rprintln!(
-        //         "motion {}, surface {}, (x, y) {:?}",
-        //         motion_detect,
-        //         surface,
-        //         (x, y),
-        //     );
-        //     pmw3389.delay.delay_ms(200);
-        // }
-
-        // self.spi.transfer(&mut [Register::MotionBurst.addr()])?;
-        // self.delay.delay_ms(35); // waits for tSRAD
-
-        // loop {
-        //     pmw3389.read_status(itm)?;
-        //     pmw3389.delay.delay_ms(10);
-        // }
-
         Ok(pmw3389)
     }
 
@@ -208,8 +176,7 @@ where
         self.spi.transfer(&mut buffer)?;
 
         // tSRAD
-        self.delay.delay_us(100);
-        self.delay.delay_us(120);
+        self.delay.delay_us(35);
 
         let mut buffer = [0];
         self.spi.transfer(&mut buffer)?;
@@ -221,7 +188,6 @@ where
 
         // tSRW/tSRR (=20us) minus tSCLK-NCS
         self.delay.delay_us(19);
-        self.delay.delay_us(120);
 
         Ok(buffer[0])
     }
@@ -254,13 +220,10 @@ where
     }
 
     /// Read status
-    pub fn read_status(&mut self) -> Result<(), E> {
+    pub fn read_status(&mut self) -> Result<((i16, i16)), E> {
         self.com_begin();
 
-        // self.write_register(Register::Motion, 0x01)?;
-
         self.spi.transfer(&mut [Register::MotionBurst.addr()])?;
-        // self.write_register(Register::MotionBurst, 0x00);
 
         self.delay.delay_us(35); // waits for tSRAD
 
@@ -269,15 +232,9 @@ where
         self.spi.transfer(&mut buf)?;
 
         // tSCLK-NCS for read operation is 120ns
-        self.delay.delay_us(120);
+        // self.delay.delay_us(120);
 
         self.com_end();
-
-        rprint!("burst [");
-        for j in buf.iter() {
-            rprint!("0x{:02x}, ", j);
-        }
-        rprintln!("]");
 
         //     SPI.endTransaction(); // Per:Not sure what it does
         //     /*
@@ -299,24 +256,16 @@ where
         //     BYTE[11] = Shutter_Lower     = Shutter MSB, Shutter = shutter is adjusted to keep the average raw data values within normal operating ranges
         //     */
         //     int motion = (burstBuffer[0] & 0x80) > 0;
-        let motion = buf[0] & 0x80;
-        let surface = buf[0] & 0x08;
+        let _motion = buf[0] & 0x80;
+        let _surface = buf[0] & 0x08;
         // 0 if on surface / 1 if off surface
 
-        let x = buf[2] as u16 + (buf[3] as u16) << 8;
-        let y = buf[4] as u16 + (buf[5] as u16) << 8;
+        let x: i16 = (((buf[3] as u16) << 8) | buf[2] as u16) as i16;
+        let y: i16 = (((buf[5] as u16) << 8) | buf[4] as u16) as i16;
 
-        let squal = buf[6];
+        let _squal = buf[6];
 
-        rprintln!(
-            "motion {}, surface {}, (x, y) {:?}, squal {}",
-            motion,
-            surface,
-            (x, y),
-            squal
-        );
-
-        Ok(())
+        Ok((x, y))
     }
 
     // Upload the firmware
@@ -369,9 +318,8 @@ where
 
         for i in Self::FIRMWARE.iter() {
             let mut buff = [*i];
-            // iprintln!(stim, "0x{:x}", buff[0]);
             self.spi.transfer(&mut buff)?;
-            self.delay.delay_us(15); // 15
+            self.delay.delay_us(15); // 15us delay between transfers
         }
 
         // // Per: added this, seems adequate
@@ -387,18 +335,17 @@ where
 
         // //Write 0x00 to Config2 register for wired mouse or 0x20 for wireless mouse design.
         // // adns_write_reg(Config2, 0x00);
-        self.write_register(Register::Config2, 0x20)?;
+        self.write_register(Register::Config2, 0x00)?;
 
         // // set initial CPI resolution
         // // adns_write_reg(Config1, 0x15);
 
-        //            self.write_register(Register::ResolutionL, 0x15)?;
-        self.write_register(Register::ResolutionL, 0x5)?;
-        // self.write_register(Register::ResolutionH, 0x15)?;
-        self.write_register(Register::ResolutionH, 0x00)?;
+        let cpi: u16 = 16000;
+        self.write_register(Register::ResolutionL, cpi as u8)?;
+        self.write_register(Register::ResolutionH, (cpi >> 8) as u8)?;
 
         // adns_com_end(); // why the CS is already high
-        self.com_end();
+        // self.com_end();
         Ok(())
     }
 

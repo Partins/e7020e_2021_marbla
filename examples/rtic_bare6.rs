@@ -202,11 +202,13 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //
 //    `rcc.cfgr.sysclk(64.mhz()).pclk1(64.mhz()).pclk2(64.mhz()).freeze()`;
 //
-//    ** your answer here **
+//    PCLK1 is set to 64 MHz but it should not exceed 42 MHz as it's constrained 
+//    by the APB1 bus as specified above and in the reference manual page 95. 
 //
 //    `rcc.cfgr.sysclk(84.mhz()).pclk1(42.mhz()).pclk2(64.mhz()).freeze();`
 //
-//    ** your answer here **
+//    We can't have a prescaler that's an integer between 84 MHz on the SYSCLK and
+//    64 MHz for the APB2 high speed bus. We'd have to set the SYSCLK to 64 MHz
 //
 //    Start `stm32cubemx` and select or create a project targeting stm32f401.
 //    Go to the graphical clock configuration view.
@@ -217,7 +219,7 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //
 //    What happens?
 //
-//    ** your answer here **
+//    It gives an error because PCLK1 freq. cannot exceed 42 MHz
 //
 //    Try to setup the clock according to:
 //
@@ -225,7 +227,7 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //
 //    `rcc.cfgr.sysclk(84.mhz()).pclk1(42.mhz()).pclk2(64.mhz()).freeze();`
 //
-//    ** your answer here **
+//    I can't find a prescaler such that I can have a SYSCLK at 84 MHz and PCLK2 at 64 MHz. 
 //
 //    Commit your answers (bare6_0)
 //

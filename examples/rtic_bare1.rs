@@ -118,7 +118,7 @@ const APP: () = {
 //
 //    Explain in your own words why a panic makes sense at this point.
 //
-//    The debugger sees that this variable will grow beyond it's declared size and panics
+//    The compiler sees that this variable will grow beyond it's declared size and panics
 //
 //    Commit your answer (bare1_3)
 //

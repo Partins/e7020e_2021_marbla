@@ -39,7 +39,7 @@ const APP: () = {
         hprintln!("End {:?}", end).ok();
         hprintln!("Diff {:?}", end.wrapping_sub(start)).ok();
 
-        wait(1_000_000);
+        wait(100);
     }
 };
 
@@ -127,7 +127,7 @@ fn wait(i: u32) {
 //
 //    Answer in your own words, how they assign r0 to 1000000.
 //
-//    The ARM instructions are a cetrain length and cannot thus wotk with very large numbers. 
+//    The ARM instructions are a cetrain length and cannot thus work with very large numbers. 
 //    What happens is that is splits the number in two and the movw puts the least-significant
 //    bits in the lower part of register r0. mowt puts the most significant bits in the upper part of r0. 
 //
@@ -149,6 +149,6 @@ fn wait(i: u32) {
 //
 //    Answer in your own words, why you believe the generated code differs?
 //
-//    We don't get to very big numbers when using the DWT::get_cycle_count()
+//    Because we're calling wait() multiple times we don't set r0 twice, instead it's reused as an argument. This is the way the compiler optimized the code. 
 //
 //    Commit your answers (bare2_3)

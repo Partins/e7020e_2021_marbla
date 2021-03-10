@@ -18,7 +18,7 @@ use stm32f4xx_hal::{
     stm32::{self, GPIOC, RCC},
 };
 
-const OFFSET: u32 = 8_000_000;
+const OFFSET: u32 = 24_000_000;
 
 #[rtic::app(device = stm32f4xx_hal::stm32, monotonic = rtic::cyccnt::CYCCNT, peripherals = true)]
 const APP: () = {
@@ -55,14 +55,10 @@ const APP: () = {
 
         let rcc = device.RCC.constrain();
 
-        let _clocks = rcc.cfgr.freeze();
+        //let _clocks = rcc.cfgr.freeze();
 
-        // Set up the system clock. 48 MHz?
-        // let _clocks = rcc
-        //     .cfgr
-        //     .sysclk(48.mhz())
-        //     .pclk1(24.mhz())
-        //     .freeze();
+        //Set up the system clock. 48 MHz?
+         let _clocks = rcc.cfgr.sysclk(48.mhz()).pclk1(24.mhz()).freeze();
 
         // let _clocks = rcc
         //     .cfgr
@@ -278,7 +274,9 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //`
 //    What is the frequency of blinking?
 //
-//    ** your answer here **
+//    Now it should be 16_000_000 divided by 48_000_000 which is 3 Hz. To get 1 Hz ha have
+//    to make the toggle less frequent, specifically 3 times slower -> 8*3 = 24. My new OFFSET
+//    is now 24_000_000 cycles
 //
 //    Now change the constant `OFFSET` so you get the same blinking frequency as in 1.
 //    Test and validate that you got the desired behavior.

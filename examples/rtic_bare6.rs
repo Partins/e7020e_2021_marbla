@@ -258,11 +258,14 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //
 //    Compute the value of SYSCLK based on the oscilloscope reading
 //
-//    ** your answer here **
+//    The oscillicope reading is 4 MHz. Looking at line 122-125 we see that the 
+//    MCO2 prescaler is set to 0b110. Looking at p. 107/847 in RM0368 we see 
+//    that it corresponds to a division by 4 (also explained by the comment on line 123).
+//    So our SYSCLK freq. is 4*4=>16 MHz
 //
 //    What is the peak to peak (voltage) reading of the signal?
 //
-//    ** your answer here **
+//    3.68V
 //
 //    Make a folder called "pictures" in your git project.
 //    Make a screen dump or photo of the oscilloscope output.

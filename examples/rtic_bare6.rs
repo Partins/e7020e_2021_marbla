@@ -239,15 +239,17 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //
 //    What is the (default) MCU (SYSCLK) frequency?
 //
-//    ** your answer here **
+//    16 MHz
 //
 //    What is the (default) DWT CYCCNT frequency?
 //
-//    ** your answer here **
+//    16 MHz
 //
 //    What is the frequency of blinking?
 //
-//    ** your answer here **
+//    Each toggle is 8_000_000 clock cycles. To blink the LED we need to toggle twice
+//    so turning on and off takes 16_000_000 clock cycles. Dividing by the SYSCLK freq.
+//    gives us the seconds. Thus the freq. of blinking is 1 Hz.
 //
 //    Commit your answers (bare6_1)
 //

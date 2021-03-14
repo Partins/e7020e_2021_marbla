@@ -92,6 +92,7 @@ const APP: () = {
             }
             
             
+            
         }
     }
 };
@@ -184,7 +185,7 @@ const APP: () = {
 //
 //    Experiment a bit, what is the max length sequence you can receive without errors?
 //
-//    ** your answer here **
+//    "abcdefg" so 7 characters. 
 //
 //    Commit your answer (bare8_4)
 //

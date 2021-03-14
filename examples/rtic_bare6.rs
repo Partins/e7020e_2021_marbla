@@ -113,27 +113,27 @@ const APP: () = {
 // gpio,    chapter 8
 
 fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
-    // output MCO2 to pin PC9
+    // output MCO2 to pin PC9v
 
     // mco2 	: SYSCLK = 0b00
     // mcopre 	: divide by 4 = 0b110
     rcc.cfgr
-        .modify(|_, w| unsafe { w.mco2().bits(0b00).mco2pre().bits(0b110) });
+        .modify(|_, w| unsafe { w.mco2().sysclk().mco2pre().div4() });
 
     // power on GPIOC, RM0368 6.3.11
-    rcc.ahb1enr.modify(|_, w| w.gpiocen().set_bit());
+    rcc.ahb1enr.modify(|_, w| w.gpiocen().enabled());
 
     // MCO_2 alternate function AF0, STM32F401xD STM32F401xE data sheet
     // table 9
     // AF0, gpioc reset value = AF0
 
     // configure PC9 as alternate function 0b10, RM0368 6.2.10
-    gpioc.moder.modify(|_, w| w.moder9().bits(0b10));
+    gpioc.moder.modify(|_, w| w.moder9().alternate());
 
     // otyper reset state push/pull, in reset state (don't need to change)
 
     // ospeedr 0b11 = very high speed
-    gpioc.ospeedr.modify(|_, w| w.ospeedr9().bits(0b11));
+    gpioc.ospeedr.modify(|_, w| w.ospeedr9().very_high_speed());
 }
 
 // 0. Background reading:
@@ -285,7 +285,7 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //
 // 4. Repeat experiment 2
 //
-//    What is the frequency of MCO2 read by the oscilloscope?
+//    What is the fruency of MCO2 read by the oscilloscope?
 //
 //    12.14MHz
 //

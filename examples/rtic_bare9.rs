@@ -148,7 +148,7 @@ const APP: () = {
 //
 //    Were you able to crash it?
 //
-//    ** your answer here **
+//    YES. But not if I run it in --realease
 //
 //    Notice, the input tracing in `moserial` seems broken, and may loose data.
 //    So don't be alarmed if data is missing, its a GUI tool after all.

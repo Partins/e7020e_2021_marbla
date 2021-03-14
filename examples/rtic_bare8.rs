@@ -75,19 +75,23 @@ const APP: () = {
         let mut errors = 0;
 
         loop {
+            received = 0;
+            errors = 0;
             match block!(rx.read()) {
                 Ok(byte) => {
                     rprintln!("Ok {:?}", byte);
                     received = received + 1;
+                    rprintln!("Received bytes {:?}", received);
                     tx.write(byte).unwrap();
                 }
                 Err(err) => {
                     rprintln!("Error {:?}", err);
                     errors = errors + 1;
+                    rprintln!("Errors {:?}", errors);
                 }
             }
-            rprintln!("Received bytes {:?}", received);
-            rprintln!("Errors {:?}", errors);
+            
+            
         }
     }
 };
@@ -163,11 +167,12 @@ const APP: () = {
 //
 // 3. Experiment a bit, what is the max length sequence you can receive without errors?
 //
-//    ** your answer here **
+//    Still 2
 //
 //    How did the added tracing/instrumentation affect the behavior?
 //
-//    ** your answer here **
+//    Not at all, maybe it's worse because when I send "abcd" I only get "a" back. But when I send
+//    "abcde" I get "ae" back. 
 //
 //    Commit your answer (bare8_3)
 //

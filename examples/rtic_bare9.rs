@@ -13,6 +13,7 @@ use stm32f4xx_hal::{
     prelude::*,
     serial::{config::Config, Event, Rx, Serial, Tx},
     stm32::USART2,
+    nb::block, 
 };
 
 use rtic::app;
@@ -82,8 +83,28 @@ const APP: () = {
     #[task(binds = USART2,  priority = 2, resources = [RX], spawn = [rx])]
     fn usart2(cx: usart2::Context) {
         let rx = cx.resources.RX;
-        let data = rx.read().unwrap();
-        cx.spawn.rx(data).unwrap();
+        //let data = rx.read().unwrap();
+
+        let mut received = 0;
+        let mut errors = 0;
+        //cx.spawn.rx(data).unwrap();
+
+        match block!(rx.read()) {
+            Ok(byte) => {
+                rprintln!("Ok {:?}", byte);
+                received = received + 1;
+                
+                //cx.spawn.rx(byte).unwrap();
+            }
+            Err(err) => {
+                rprintln!("Error {:?}", err);
+                errors = errors + 1;
+                
+            }
+        }
+        rprintln!("Received bytes {:?}", received);
+        rprintln!("Errors {:?}", errors);
+
     }
 
     extern "C" {

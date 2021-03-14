@@ -133,7 +133,7 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
     // otyper reset state push/pull, in reset state (don't need to change)
 
     // ospeedr 0b11 = very high speed
-    gpioc.ospeedr.modify(|_, w| w.ospeedr9().very_high_speed());
+    gpioc.ospeedr.modify(|_, w| w.ospeedr9().low_speed());
 }
 
 // 0. Background reading:
@@ -330,11 +330,11 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //
 //    Did the frequency change in comparison to assignment 5?
 //
-//    ** your answer here **
+//    NO. Still at around 12.21 MHz
 //
 //    What is the peak to peak reading of the signal (and why did it change)?
 //
-//    ** your answer here **
+//    3.17V
 //
 //    Make a screen dump or photo of the oscilloscope output.
 //    Save the the picture as "bare_6_48mhz_low_speed".

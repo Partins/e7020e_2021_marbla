@@ -11,7 +11,7 @@
 
 use panic_rtt_target as _;
 
-use nb::block;
+use stm32f4xx_hal::nb::block;
 
 use stm32f4xx_hal::{
     gpio::{gpioa::PA, Output, PushPull},
@@ -113,31 +113,34 @@ const APP: () = {
 //
 //    What do you receive in `moserial`?
 //
-//    ** your answer here **
+//    In received ASCII window I get the same message back: a
 //
 //    What do you receive in the RTT terminal?
 //
-//    ** your answer here **
+//    OK 97
 //
 //    Try sending: "abcd" as a single sequence, don't send the quotation marks, just abcd.
 //
 //    What did you receive in `moserial`?
 //
-//    ** your answer here **
+//    ad
 //
 //    What do you receive in the RTT terminal?
 //
-//    ** your answer here **
+//    Ok 97
+//    Error Overrun
+//    Ok 100
 //
 //    What do you believe to be the problem?
 //
 //    Hint: Look at the code in `idle` what does it do?
 //
-//    ** your answer here **
+//    The amount of information is too much to decode. Somthing with the RXNE flag. See p. 516 in RM0368.
+//    It's an overrun error. Basically more bytes arrive before we've read the previous byte. 
 //
 //    Experiment a bit, what is the max length sequence you can receive without errors?
 //
-//    ** your answer here **
+//    2. Sometimes 3. But if i decrease the BAUDRATE to 9600 I can transmit "abcdefghiabcdefghi"
 //
 //    Commit your answers (bare8_1)
 //

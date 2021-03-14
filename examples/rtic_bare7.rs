@@ -17,7 +17,6 @@ use stm32f4xx_hal::{
     gpio::{gpioa::PA5, Output, PushPull},
     prelude::*,
 };
-;
 use embedded_hal::digital::v2::{OutputPin, ToggleableOutputPin};
 
 const OFFSET: u32 = 8_000_000;
@@ -26,8 +25,9 @@ const OFFSET: u32 = 8_000_000;
 const APP: () = {
     struct Resources {
         // late resources
-        GPIOA: stm32::GPIOA,
-        // led: PA5<Output<PushPull>>,
+        // GPIOA: stm32::GPIOA,
+        
+        led: PA5<Output<PushPull>>,
     }
     #[init(schedule = [toggle])]
     fn init(cx: init::Context) -> init::LateResources {
@@ -55,7 +55,9 @@ const APP: () = {
 
         // pass on late resources
         init::LateResources {
-            GPIOA: device.GPIOA,
+            // Set LED pin PA5 as output
+            led: device.GPIOA.split().pa5.into_push_pull_output(),
+            //GPIOA: device.GPIOA,
         }
     }
 
@@ -67,15 +69,18 @@ const APP: () = {
         }
     }
 
-    #[task(resources = [GPIOA], schedule = [toggle])]
+    #[task(resources = [led], schedule = [toggle])]
     fn toggle(cx: toggle::Context) {
         static mut TOGGLE: bool = false;
         rprintln!("toggle  @ {:?}", Instant::now());
 
+        // Toggle the led by using the output led resource. 
         if *TOGGLE {
-            cx.resources.GPIOA.bsrr.write(|w| w.bs5().set_bit());
+            cx.resources.led.set_high();
+            //cx.resources.GPIOA.bsrr.write(|w| w.bs5().set_bit());
         } else {
-            cx.resources.GPIOA.bsrr.write(|w| w.br5().set_bit());
+            cx.resources.led.set_low();
+            //cx.resources.GPIOA.bsrr.write(|w| w.br5().set_bit());
         }
 
         *TOGGLE = !*TOGGLE;

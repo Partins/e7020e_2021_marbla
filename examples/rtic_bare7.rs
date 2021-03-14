@@ -71,20 +71,23 @@ const APP: () = {
 
     #[task(resources = [led], schedule = [toggle])]
     fn toggle(cx: toggle::Context) {
-        static mut TOGGLE: bool = false;
+        static mut TOGGLE: bool = true;
         rprintln!("toggle  @ {:?}", Instant::now());
 
         // Toggle the led by using the output led resource. 
-        if *TOGGLE {
-            cx.resources.led.set_high();
-            //cx.resources.GPIOA.bsrr.write(|w| w.bs5().set_bit());
-        } else {
-            cx.resources.led.set_low();
-            //cx.resources.GPIOA.bsrr.write(|w| w.br5().set_bit());
-        }
-
-        *TOGGLE = !*TOGGLE;
+        //if *TOGGLE {
+        //    cx.resources.led.set_high();
+        //    //cx.resources.GPIOA.bsrr.write(|w| w.bs5().set_bit());
+        //} else {
+        //    cx.resources.led.set_low();
+        //    //cx.resources.GPIOA.bsrr.write(|w| w.br5().set_bit());
+        //}
+        
+        //*TOGGLE = !*TOGGLE;
+        _toggle_generic(cx.resources.led, TOGGLE);
         cx.schedule.toggle(cx.scheduled + OFFSET.cycles()).unwrap();
+
+        
     }
 
     extern "C" {

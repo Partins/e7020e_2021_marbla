@@ -287,15 +287,15 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //
 //    What is the frequency of MCO2 read by the oscilloscope?
 //
-//    ** your answer here **
+//    12.14MHz
 //
 //    Compute the value of SYSCLK based on the oscilloscope reading.
 //
-//    ** your answer here **
+//    12.15*4 = 48.6MHz
 //
 //    What is the peak to peak reading of the signal?
 //
-//    ** your answer here **
+//    3.24V
 //
 //    Make a screen dump or photo of the oscilloscope output.
 //    Save the the picture as "bare_6_48mhz_high_speed".

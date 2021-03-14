@@ -58,7 +58,13 @@ const APP: () = {
         //let _clocks = rcc.cfgr.freeze();
 
         //Set up the system clock. 48 MHz?
-         let _clocks = rcc.cfgr.sysclk(48.mhz()).pclk1(24.mhz()).freeze();
+        // let _clocks = rcc.cfgr.sysclk(48.mhz()).pclk1(24.mhz()).freeze();
+
+        // 7.1 (panicks at run-time)
+        // let _clocks = rcc.cfgr.sysclk(64.mhz()).pclk1(64.mhz()).pclk2(64.mhz()).freeze();
+        
+        // 7.2 
+        rcc.cfgr.sysclk(84.mhz()).pclk1(42.mhz()).pclk2(64.mhz()).freeze();
 
         // let _clocks = rcc
         //     .cfgr
@@ -347,11 +353,11 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //
 //    Does the code compile?
 //
-//    ** your answer here **
+//    YES.
 //
 //    What happens at run-time?
 //
-//    ** your answer here **
+//    It panicked because we tried to set the pclk1 to 64 MHz but the limit is 48 MHz.
 //
 //    Try setting the clocks according to:
 //
@@ -359,11 +365,13 @@ fn clock_out(rcc: &RCC, gpioc: &GPIOC) {
 //
 //    Does the code compile?
 //
-//    ** your answer here **
+//    YES
 //
 //    What happens at run-time?
 //
-//    ** your answer here **
+//    It runs but it's not correct as there is no prescaler between SYSCLK 84MHz
+//    and PCLK2 64 MHz. If we'd try to set it up with stm32cubemx we would get an error
+//    just like in one of the first excercises. 
 //
 //    Is that a correct?
 //

@@ -49,6 +49,7 @@ const APP: () = {
         let tx = gpioa.pa2.into_alternate_af7();
         let rx = gpioa.pa3.into_alternate_af7();
 
+
         let serial = Serial::usart2(
             device.USART2,
             (tx, rx),
@@ -70,16 +71,23 @@ const APP: () = {
         let rx = cx.resources.RX;
         let tx = cx.resources.TX;
 
+        let mut received = 0;
+        let mut errors = 0;
+
         loop {
             match block!(rx.read()) {
                 Ok(byte) => {
                     rprintln!("Ok {:?}", byte);
+                    received = received + 1;
                     tx.write(byte).unwrap();
                 }
                 Err(err) => {
                     rprintln!("Error {:?}", err);
+                    errors = errors + 1;
                 }
             }
+            rprintln!("Received bytes {:?}", received);
+            rprintln!("Errors {:?}", errors);
         }
     }
 };
